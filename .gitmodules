@@ -1,0 +1,6 @@
+[submodule "https:/github.com/urho3d/Urho3D"]
+	path = https:/github.com/urho3d/Urho3D
+	url = ./Urho3D
+[submodule "Urho3D"]
+	path = Urho3D
+	url = https://github.com/urho3d/Urho3D
