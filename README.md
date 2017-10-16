@@ -7,7 +7,7 @@ Build Urho3D:
     cd Urho3D
     mkdir build
     cd build
-    cmake ..
+    cmake -DURHO3D_LIB_TYPE=SHARED ..
     make -j`nproc`
     sudo make install
 
@@ -24,3 +24,4 @@ Examples:
 
 1. [empty.cpp](empty.cpp)
 1. [input.cpp](input.cpp)
+1. [collision.cpp](collision.cpp)
