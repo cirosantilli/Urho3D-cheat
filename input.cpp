@@ -11,33 +11,33 @@ using namespace Urho3D;
 class Main : public Application {
     URHO3D_OBJECT(Main, Application);
 public:
-	Main(Context* context) : Application(context) {
-	}
-    virtual void Setup() override {
-		this->engineParameters_[EP_FULL_SCREEN] = false;
-		this->engineParameters_[EP_WINDOW_TITLE] = __FILE__ " SPACE and ESC";
-		GetSubsystem<Input>()->SetMouseVisible(true);
+    Main(Context* context) : Application(context) {
     }
-	void Start() {
-		SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
-		SubscribeToEvent(E_KEYUP, URHO3D_HANDLER(Main, HandleKeyUp));
-	}
-	void Stop() {}
+    virtual void Setup() override {
+        this->engineParameters_[EP_FULL_SCREEN] = false;
+        this->engineParameters_[EP_WINDOW_TITLE] = __FILE__ " SPACE and ESC";
+        GetSubsystem<Input>()->SetMouseVisible(true);
+    }
+    void Start() {
+        SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
+        SubscribeToEvent(E_KEYUP, URHO3D_HANDLER(Main, HandleKeyUp));
+    }
+    void Stop() {}
 private:
-	void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
-		using namespace KeyDown;
-		auto key = eventData[P_KEY].GetInt();
-		if (key == KEY_ESCAPE) {
-			engine_->Exit();
-		}
-	}
-	void HandleKeyUp(StringHash /*eventType*/, VariantMap& eventData) {
-		using namespace KeyUp;
-		auto key = eventData[P_KEY].GetInt();
-		if (key == KEY_SPACE) {
-			std::cout << "space down" << std::endl;
-		}
-	}
+    void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
+        using namespace KeyDown;
+        auto key = eventData[P_KEY].GetInt();
+        if (key == KEY_ESCAPE) {
+            engine_->Exit();
+        }
+    }
+    void HandleKeyUp(StringHash /*eventType*/, VariantMap& eventData) {
+        using namespace KeyUp;
+        auto key = eventData[P_KEY].GetInt();
+        if (key == KEY_SPACE) {
+            std::cout << "space down" << std::endl;
+        }
+    }
 };
 
 URHO3D_DEFINE_APPLICATION_MAIN(Main);
