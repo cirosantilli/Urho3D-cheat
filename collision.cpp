@@ -38,6 +38,14 @@ public:
         engineParameters_[EP_WINDOW_WIDTH] = 512;
     }
     void Start() {
+        auto windowWidth = 10.0f;
+        auto windowHeight = windowWidth;
+        auto groundWidth = windowWidth;
+        auto groundHeight = 1.0f;
+		auto ballRadius = 0.5f;
+		auto ballRestitution = 0.8f;
+		auto ballDensity = 1.0f;
+
         // TODO: not working. Is there any way to avoid creating a custom
         // Component as in the ragdoll example?
         SubscribeToEvent(E_NODECOLLISION, URHO3D_HANDLER(Main, HandleNodeCollision));
@@ -53,55 +61,43 @@ public:
         physicsWorld->SetGravity(Vector2(0.0f, -10.0f));
 
         // Graphics
-        auto cameraNode_ = scene_->CreateChild("camera");
-        cameraNode_->SetPosition(Vector3(0.0f, 0.0f, -1.0f));
+        auto cameraNode_ = this->scene_->CreateChild("camera");
+        // Center of the camera.
+        cameraNode_->SetPosition(Vector3(0.0f, windowHeight / 2.0, -1.0f));
         auto camera = cameraNode_->CreateComponent<Camera>();
         camera->SetOrthographic(true);
         auto graphics = GetSubsystem<Graphics>();
-        camera->SetOrthoSize(10.0);
+        camera->SetOrthoSize(windowWidth);
         auto renderer = GetSubsystem<Renderer>();
-        SharedPtr<Viewport> viewport(new Viewport(context_, scene_, cameraNode_->GetComponent<Camera>()));
+        SharedPtr<Viewport> viewport(new Viewport(context_, this->scene_, cameraNode_->GetComponent<Camera>()));
         renderer->SetViewport(0, viewport);
-
-        // Sprite cache
         auto cache = GetSubsystem<ResourceCache>();
-        auto boxSprite = cache->GetResource<Sprite2D>("Urho2D/Box.png");
-        auto ballSprite = cache->GetResource<Sprite2D>("Urho2D/Ball.png");
 
         // Ground
         {
-            auto h = 2.0;
-            auto w = 2.0;
-            auto node = scene_->CreateChild("ground");
-            node->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
-            auto staticSprite = node->CreateComponent<StaticSprite2D>();
-            auto rect = boxSprite->GetRectangle();
-            auto scaleX = PIXEL_SIZE * rect.Width();
-            auto scaleY = PIXEL_SIZE * rect.Height();
-            node->SetScale(Vector3(w / scaleX, h / scaleY, 0.0f));
+
+            auto node = this->scene_->CreateChild("ground");
+            node->SetPosition(Vector3(0.0f, groundHeight / 2.0f, 0.0f));
             node->CreateComponent<RigidBody2D>();
-            //staticSprite->SetSprite(boxSprite);
             auto shape = node->CreateComponent<CollisionBox2D>();
-            shape->SetSize(Vector2(scaleX, scaleY));
+            shape->SetSize(Vector2(groundWidth, groundHeight));
         }
 
-        // Falling circle
+        // Falling circles.
         {
-            auto r = 2.0;
-            auto node  = scene_->CreateChild("circle");
-            node->SetPosition(Vector3(0.0f, 4.0f, 0.0f));
-            auto staticSprite = node->CreateComponent<StaticSprite2D>();
-            auto rect = boxSprite->GetRectangle();
-            auto scaleX = PIXEL_SIZE * rect.Width();
-            auto scaleY = PIXEL_SIZE * rect.Height();
-            node->SetScale(Vector3(r / scaleX, r / scaleY, 0.0f));
-            auto body = node->CreateComponent<RigidBody2D>();
-            body->SetBodyType(BT_DYNAMIC);
-            //staticSprite->SetSprite(ballSprite);
-            auto circle = node->CreateComponent<CollisionCircle2D>();
-            circle->SetRadius(scaleX / 2.0);
-            circle->SetDensity(1.0f);
-            circle->SetRestitution(0.8f);
+			auto nodeLeft  = this->scene_->CreateChild("circleLeft");
+            {
+            	auto& node = nodeLeft;
+                node->SetPosition(Vector3(-windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
+                auto body = node->CreateComponent<RigidBody2D>();
+                body->SetBodyType(BT_DYNAMIC);
+                auto circle = node->CreateComponent<CollisionCircle2D>();
+                circle->SetRadius(ballRadius);
+                circle->SetDensity(ballDensity);
+                circle->SetRestitution(ballRestitution);
+            }
+            auto nodeRight = nodeLeft->Clone();
+			nodeRight->SetPosition(Vector3(windowWidth / 4.0f, windowHeight * (3.0f / 4.0f), 0.0f));
         }
     }
     void Stop() {}
@@ -111,7 +107,7 @@ private:
         std::cout << "asdf" << std::endl;
     }
 	void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
-		auto* physicsWorld = this->scene_->GetComponent<PhysicsWorld2D>();
+		auto physicsWorld = this->scene_->GetComponent<PhysicsWorld2D>();
 		physicsWorld->DrawDebugGeometry();
 	}
 	void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
