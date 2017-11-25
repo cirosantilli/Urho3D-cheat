@@ -13,7 +13,6 @@
 #include <Urho3D/Input/Input.h>
 #include <Urho3D/Input/InputEvents.h>
 #include <Urho3D/Physics/PhysicsEvents.h>
-#include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/Scene/Scene.h>
 #include <Urho3D/Scene/SceneEvents.h>
 #include <Urho3D/Urho2D/CollisionBox2D.h>
@@ -66,16 +65,13 @@ public:
         cameraNode_->SetPosition(Vector3(0.0f, windowHeight / 2.0, -1.0f));
         auto camera = cameraNode_->CreateComponent<Camera>();
         camera->SetOrthographic(true);
-        auto graphics = GetSubsystem<Graphics>();
         camera->SetOrthoSize(windowWidth);
         auto renderer = GetSubsystem<Renderer>();
         SharedPtr<Viewport> viewport(new Viewport(context_, this->scene_, cameraNode_->GetComponent<Camera>()));
         renderer->SetViewport(0, viewport);
-        auto cache = GetSubsystem<ResourceCache>();
 
         // Ground
         {
-
             auto node = this->scene_->CreateChild("ground");
             node->SetPosition(Vector3(0.0f, groundHeight / 2.0f, 0.0f));
             node->CreateComponent<RigidBody2D>();

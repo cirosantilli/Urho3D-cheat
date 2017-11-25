@@ -10,7 +10,6 @@ set (CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
 include (UrhoCommon)
 
 file(GLOB APP_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "*.cpp")
-message("${APP_SOURCES}")
 foreach(testsourcefile ${APP_SOURCES})
     string(REPLACE ".cpp" "" testname ${testsourcefile})
 
