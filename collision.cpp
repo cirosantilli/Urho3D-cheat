@@ -10,6 +10,9 @@
 #include <Urho3D/Graphics/Graphics.h>
 #include <Urho3D/Graphics/Octree.h>
 #include <Urho3D/Graphics/Renderer.h>
+#include <Urho3D/Input/Input.h>
+#include <Urho3D/Input/InputEvents.h>
+#include <Urho3D/Physics/PhysicsEvents.h>
 #include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/Scene/Scene.h>
 #include <Urho3D/Scene/SceneEvents.h>
@@ -17,7 +20,6 @@
 #include <Urho3D/Urho2D/CollisionCircle2D.h>
 #include <Urho3D/Urho2D/Drawable2D.h>
 #include <Urho3D/Urho2D/PhysicsWorld2D.h>
-#include <Urho3D/Physics/PhysicsEvents.h>
 #include <Urho3D/Urho2D/RigidBody2D.h>
 #include <Urho3D/Urho2D/Sprite2D.h>
 #include <Urho3D/Urho2D/StaticSprite2D.h>
@@ -39,12 +41,14 @@ public:
         // TODO: not working. Is there any way to avoid creating a custom
         // Component as in the ragdoll example?
         SubscribeToEvent(E_NODECOLLISION, URHO3D_HANDLER(Main, HandleNodeCollision));
+        SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Main, HandlePostRenderUpdate));
+        SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
 
         // Scene
-        scene_ = new Scene(this->context_);
-        scene_->CreateComponent<Octree>();
-        scene_->CreateComponent<DebugRenderer>();
-        scene_->CreateComponent<PhysicsWorld2D>();
+        this->scene_ = new Scene(this->context_);
+        this->scene_->CreateComponent<Octree>();
+        this->scene_->CreateComponent<DebugRenderer>();
+        this->scene_->CreateComponent<PhysicsWorld2D>();
         auto physicsWorld = scene_->GetComponent<PhysicsWorld2D>();
         physicsWorld->SetGravity(Vector2(0.0f, -10.0f));
 
@@ -76,7 +80,7 @@ public:
             auto scaleY = PIXEL_SIZE * rect.Height();
             node->SetScale(Vector3(w / scaleX, h / scaleY, 0.0f));
             node->CreateComponent<RigidBody2D>();
-            staticSprite->SetSprite(boxSprite);
+            //staticSprite->SetSprite(boxSprite);
             auto shape = node->CreateComponent<CollisionBox2D>();
             shape->SetSize(Vector2(scaleX, scaleY));
         }
@@ -93,7 +97,7 @@ public:
             node->SetScale(Vector3(r / scaleX, r / scaleY, 0.0f));
             auto body = node->CreateComponent<RigidBody2D>();
             body->SetBodyType(BT_DYNAMIC);
-            staticSprite->SetSprite(ballSprite);
+            //staticSprite->SetSprite(ballSprite);
             auto circle = node->CreateComponent<CollisionCircle2D>();
             circle->SetRadius(scaleX / 2.0);
             circle->SetDensity(1.0f);
@@ -106,6 +110,17 @@ private:
     void HandleNodeCollision(StringHash eventType, VariantMap& eventData) {
         std::cout << "asdf" << std::endl;
     }
+	void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
+		auto* physicsWorld = this->scene_->GetComponent<PhysicsWorld2D>();
+		physicsWorld->DrawDebugGeometry();
+	}
+	void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
+		using namespace KeyDown;
+		int key = eventData[P_KEY].GetInt();
+		if (key == KEY_ESCAPE) {
+			engine_->Exit();
+		}
+	}
 };
 
 URHO3D_DEFINE_APPLICATION_MAIN(Main);
