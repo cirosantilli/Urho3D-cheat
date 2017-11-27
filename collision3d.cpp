@@ -1,7 +1,5 @@
 /*
 Expected outcome: two falling balls. When either hits the ground, print a message to stdout.
-
-TODO: balls look like boxes on debug, why? Works fine on Ragdoll example.
 */
 
 #include <iostream>
@@ -55,7 +53,7 @@ public:
         auto groundWidth = windowWidth;
         auto groundHeight = 1.0f;
         auto ballRadius = 0.5f;
-        auto ballRestitution = 0.8f;
+        auto ballRestitution = 0.7f;
 
         // Events
         SubscribeToEvent(E_NODECOLLISION, URHO3D_HANDLER(Main, HandleNodeCollision));
@@ -85,8 +83,6 @@ public:
             auto node = scene_->CreateChild("Ground");
             node->SetPosition(Vector3(0.0f, -groundHeight / 2.0, 0.0f));
             node->SetScale(Vector3(groundWidth, groundHeight, groundWidth));
-            auto staticModel = node->CreateComponent<StaticModel>();
-            staticModel->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
             auto rigidBody = node->CreateComponent<RigidBody>();
             rigidBody->SetRestitution(1.0);
             auto collisionShape = node->CreateComponent<CollisionShape>();
@@ -99,8 +95,6 @@ public:
             {
                 auto& node = nodeLeft;
                 node->SetPosition(Vector3(-windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
-                auto staticModel = node->CreateComponent<StaticModel>();
-                staticModel->SetModel(cache->GetResource<Model>("Models/Sphere.mdl"));
                 auto rigidBody = node->CreateComponent<RigidBody>();
                 rigidBody->SetRestitution(ballRestitution);
                 rigidBody->SetMass(1.0f);
@@ -118,7 +112,7 @@ private:
         std::cout << "asdf" << std::endl;
     }
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
-        GetSubsystem<Renderer>()->DrawDebugGeometry(false);
+        scene_->GetComponent<PhysicsWorld>()->DrawDebugGeometry(true);
     }
     void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
         using namespace KeyDown;
