@@ -27,8 +27,6 @@ https://stackoverflow.com/questions/47505166/how-to-detect-collisions-in-urho3d-
 #include <Urho3D/Urho2D/PhysicsEvents2D.h>
 #include <Urho3D/Urho2D/RigidBody2D.h>
 
-#include <Urho3D/Scene/Component.h>
-
 using namespace Urho3D;
 
 class Main : public Application {
