@@ -1,3 +1,9 @@
+/*
+Expected outcome: open a black fullscreen window.
+
+To exit: alt + tab, then Ctrl + C on terminal.
+*/
+
 #include <Urho3D/Engine/Application.h>
 
 using namespace Urho3D;

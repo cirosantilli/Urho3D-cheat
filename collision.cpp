@@ -1,4 +1,6 @@
 /*
+Expected outcome: two falling balls. When either hits the ground, print a message to stdout.
+
 https://stackoverflow.com/questions/47505166/how-to-detect-collisions-in-urho3d-in-a-2d-world
 */
 
@@ -46,10 +48,8 @@ public:
         auto groundHeight = 1.0f;
         auto ballRadius = 0.5f;
         auto ballRestitution = 0.8f;
-        auto ballDensity = 1.0f;
 
-        // TODO: not working. Is there any way to avoid creating a custom
-        // Component as in the ragdoll example?
+        // Events
         SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Main, HandleNodeCollision));
         SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Main, HandlePostRenderUpdate));
         SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
@@ -92,7 +92,6 @@ public:
                 body->SetBodyType(BT_DYNAMIC);
                 auto collisionCircle2d = node->CreateComponent<CollisionCircle2D>();
                 collisionCircle2d->SetRadius(ballRadius);
-                collisionCircle2d->SetDensity(ballDensity);
                 collisionCircle2d->SetRestitution(ballRestitution);
             }
             auto nodeRight = nodeLeft->Clone();

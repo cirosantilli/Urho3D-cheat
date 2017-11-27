@@ -1,3 +1,9 @@
+/*
+Expected outcome: two falling balls. When either hits the ground, print a message to stdout.
+
+TODO: balls look like boxes on debug, why? Works fine on Ragdoll example.
+*/
+
 #include <iostream>
 
 #include <Urho3D/Core/CoreEvents.h>
@@ -50,10 +56,8 @@ public:
         auto groundHeight = 1.0f;
         auto ballRadius = 0.5f;
         auto ballRestitution = 0.8f;
-        auto ballDensity = 1.0f;
 
-        // TODO: not working. Is there any way to avoid creating a custom
-        // Component as in the ragdoll example?
+        // Events
         SubscribeToEvent(E_NODECOLLISION, URHO3D_HANDLER(Main, HandleNodeCollision));
         SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Main, HandlePostRenderUpdate));
         SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
@@ -68,8 +72,8 @@ public:
         auto cache = GetSubsystem<ResourceCache>();
 
         // Graphics
-        auto cameraNode_ = this->scene_->CreateChild("camera");
-        cameraNode_->SetPosition(Vector3(0.0f, windowHeight / 4.0, -15.0f));
+        auto cameraNode_ = this->scene_->CreateChild("Camera");
+        cameraNode_->SetPosition(Vector3(0.0f, windowHeight / 4.0, -1.5 * windowWidth));
         auto camera = cameraNode_->CreateComponent<Camera>();
         camera->SetFarClip(500.0f);
         auto renderer = GetSubsystem<Renderer>();
@@ -78,9 +82,9 @@ public:
 
         // Ground
         {
-            auto node = scene_->CreateChild("Floor");
-            node->SetPosition(Vector3(0.0f, -0.5f, 0.0f));
-            node->SetScale(Vector3(1000.0f, 1.0f, 1000.0f));
+            auto node = scene_->CreateChild("Ground");
+            node->SetPosition(Vector3(0.0f, -groundHeight / 2.0, 0.0f));
+            node->SetScale(Vector3(groundWidth, groundHeight, groundWidth));
             auto staticModel = node->CreateComponent<StaticModel>();
             staticModel->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
             auto rigidBody = node->CreateComponent<RigidBody>();
@@ -98,9 +102,8 @@ public:
                 auto staticModel = node->CreateComponent<StaticModel>();
                 staticModel->SetModel(cache->GetResource<Model>("Models/Sphere.mdl"));
                 auto rigidBody = node->CreateComponent<RigidBody>();
-                rigidBody->SetMass(1.0f);
-                rigidBody->SetFriction(0.75f);
                 rigidBody->SetRestitution(ballRestitution);
+                rigidBody->SetMass(1.0f);
                 auto collisionShape = node->CreateComponent<CollisionShape>();
                 collisionShape->SetSphere(2.0f * ballRadius);
             }

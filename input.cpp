@@ -1,3 +1,10 @@
+/*
+Expected outcome:
+
+- press ESC: quit
+- release space: stdout shows a message
+*/
+
 #include <iostream>
 
 #include <Urho3D/Core/Object.h>
