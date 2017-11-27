@@ -64,7 +64,6 @@ public:
 
         // Graphics
         auto cameraNode_ = this->scene_->CreateChild("Camera");
-        // Center of the camera.
         cameraNode_->SetPosition(Vector3(0.0f, windowHeight / 2.0, -1.0f));
         auto camera = cameraNode_->CreateComponent<Camera>();
         camera->SetOrthographic(true);
