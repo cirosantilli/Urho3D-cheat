@@ -17,19 +17,17 @@
 #include <Urho3D/Scene/SceneEvents.h>
 #include <Urho3D/Urho2D/CollisionBox2D.h>
 #include <Urho3D/Urho2D/CollisionCircle2D.h>
-#include <Urho3D/Urho2D/Drawable2D.h>
 #include <Urho3D/Urho2D/PhysicsWorld2D.h>
 #include <Urho3D/Urho2D/RigidBody2D.h>
-#include <Urho3D/Urho2D/Sprite2D.h>
-#include <Urho3D/Urho2D/StaticSprite2D.h>
+
+#include <Urho3D/Scene/Component.h>
 
 using namespace Urho3D;
 
 class Main : public Application {
     URHO3D_OBJECT(Main, Application);
-public:
-    Main(Context* context) : Application(context) {
-    }
+    public:
+    Main(Context* context) : Application(context) {}
     virtual void Setup() override {
         engineParameters_[EP_FULL_SCREEN] = false;
         engineParameters_[EP_WINDOW_TITLE] = __FILE__;
@@ -41,9 +39,9 @@ public:
         auto windowHeight = windowWidth;
         auto groundWidth = windowWidth;
         auto groundHeight = 1.0f;
-		auto ballRadius = 0.5f;
-		auto ballRestitution = 0.8f;
-		auto ballDensity = 1.0f;
+        auto ballRadius = 0.5f;
+        auto ballRestitution = 0.8f;
+        auto ballDensity = 1.0f;
 
         // TODO: not working. Is there any way to avoid creating a custom
         // Component as in the ragdoll example?
@@ -60,7 +58,7 @@ public:
         physicsWorld->SetGravity(Vector2(0.0f, -10.0f));
 
         // Graphics
-        auto cameraNode_ = this->scene_->CreateChild("camera");
+        auto cameraNode_ = this->scene_->CreateChild("Camera");
         // Center of the camera.
         cameraNode_->SetPosition(Vector3(0.0f, windowHeight / 2.0, -1.0f));
         auto camera = cameraNode_->CreateComponent<Camera>();
@@ -72,47 +70,47 @@ public:
 
         // Ground
         {
-            auto node = this->scene_->CreateChild("ground");
+            auto node = this->scene_->CreateChild("Ground");
             node->SetPosition(Vector3(0.0f, groundHeight / 2.0f, 0.0f));
             node->CreateComponent<RigidBody2D>();
-            auto shape = node->CreateComponent<CollisionBox2D>();
-            shape->SetSize(Vector2(groundWidth, groundHeight));
+            auto collisionBox2d = node->CreateComponent<CollisionBox2D>();
+            collisionBox2d->SetSize(Vector2(groundWidth, groundHeight));
         }
 
-        // Falling circles.
+        // Falling balls
         {
-			auto nodeLeft  = this->scene_->CreateChild("circleLeft");
+            auto nodeLeft  = this->scene_->CreateChild("BallLeft");
             {
-            	auto& node = nodeLeft;
+                auto& node = nodeLeft;
                 node->SetPosition(Vector3(-windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
                 auto body = node->CreateComponent<RigidBody2D>();
                 body->SetBodyType(BT_DYNAMIC);
-                auto circle = node->CreateComponent<CollisionCircle2D>();
-                circle->SetRadius(ballRadius);
-                circle->SetDensity(ballDensity);
-                circle->SetRestitution(ballRestitution);
+                auto collisionCircle2d = node->CreateComponent<CollisionCircle2D>();
+                collisionCircle2d->SetRadius(ballRadius);
+                collisionCircle2d->SetDensity(ballDensity);
+                collisionCircle2d->SetRestitution(ballRestitution);
             }
             auto nodeRight = nodeLeft->Clone();
-			nodeRight->SetPosition(Vector3(windowWidth / 4.0f, windowHeight * (3.0f / 4.0f), 0.0f));
+            nodeRight->SetPosition(Vector3(windowWidth / 4.0f, windowHeight * (3.0f / 4.0f), 0.0f));
         }
     }
     void Stop() {}
-private:
+    private:
     SharedPtr<Scene> scene_;
     void HandleNodeCollision(StringHash eventType, VariantMap& eventData) {
         std::cout << "asdf" << std::endl;
     }
-	void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
-		auto physicsWorld = this->scene_->GetComponent<PhysicsWorld2D>();
-		physicsWorld->DrawDebugGeometry();
-	}
-	void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
-		using namespace KeyDown;
-		int key = eventData[P_KEY].GetInt();
-		if (key == KEY_ESCAPE) {
-			engine_->Exit();
-		}
-	}
+    void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
+        auto physicsWorld = this->scene_->GetComponent<PhysicsWorld2D>();
+        physicsWorld->DrawDebugGeometry();
+    }
+    void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
+        using namespace KeyDown;
+        int key = eventData[P_KEY].GetInt();
+        if (key == KEY_ESCAPE) {
+            engine_->Exit();
+        }
+    }
 };
 
 URHO3D_DEFINE_APPLICATION_MAIN(Main);
