@@ -1,3 +1,7 @@
+/*
+https://stackoverflow.com/questions/47505166/how-to-detect-collisions-in-urho3d-in-a-2d-world
+*/
+
 #include <iostream>
 
 #include <Urho3D/Core/CoreEvents.h>
@@ -18,6 +22,7 @@
 #include <Urho3D/Urho2D/CollisionBox2D.h>
 #include <Urho3D/Urho2D/CollisionCircle2D.h>
 #include <Urho3D/Urho2D/PhysicsWorld2D.h>
+#include <Urho3D/Urho2D/PhysicsEvents2D.h>
 #include <Urho3D/Urho2D/RigidBody2D.h>
 
 #include <Urho3D/Scene/Component.h>
@@ -45,7 +50,7 @@ class Main : public Application {
 
         // TODO: not working. Is there any way to avoid creating a custom
         // Component as in the ragdoll example?
-        SubscribeToEvent(E_NODECOLLISION, URHO3D_HANDLER(Main, HandleNodeCollision));
+        SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Main, HandleNodeCollision));
         SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Main, HandlePostRenderUpdate));
         SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
 
