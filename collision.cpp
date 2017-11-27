@@ -31,7 +31,7 @@ using namespace Urho3D;
 
 class Main : public Application {
     URHO3D_OBJECT(Main, Application);
-    public:
+public:
     Main(Context* context) : Application(context) {}
     virtual void Setup() override {
         engineParameters_[EP_FULL_SCREEN] = false;
@@ -100,7 +100,7 @@ class Main : public Application {
         }
     }
     void Stop() {}
-    private:
+private:
     SharedPtr<Scene> scene_;
     void HandleNodeCollision(StringHash eventType, VariantMap& eventData) {
         std::cout << "asdf" << std::endl;
