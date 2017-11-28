@@ -18,6 +18,7 @@ https://stackoverflow.com/questions/47505166/how-to-detect-collisions-in-urho3d-
 #include <Urho3D/Graphics/Renderer.h>
 #include <Urho3D/Input/Input.h>
 #include <Urho3D/Input/InputEvents.h>
+#include <Urho3D/IO/MemoryBuffer.h>
 #include <Urho3D/Scene/Node.h>
 #include <Urho3D/Scene/Scene.h>
 #include <Urho3D/Scene/SceneEvents.h>
@@ -48,10 +49,9 @@ public:
         auto ballRestitution = 0.8f;
 
         // Events
-        SubscribeToEvent(E_NODEUPDATECONTACT2D, URHO3D_HANDLER(Main, HandleNodeUpdateContact));
-        SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Main, HandleNodeCollision));
-        SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Main, HandlePostRenderUpdate));
         SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
+        SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Main, HandlePhysicsBeginContact2D));
+        SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Main, HandlePostRenderUpdate));
 
         // Scene
         this->scene = new Scene(this->context_);
@@ -73,10 +73,10 @@ public:
 
         // Ground
         {
-            auto node = this->scene->CreateChild("Ground");
-            node->SetPosition(Vector3(0.0f, groundHeight / 2.0f, 0.0f));
-            node->CreateComponent<RigidBody2D>();
-            auto collisionBox2d = node->CreateComponent<CollisionBox2D>();
+            this->groundNode = this->scene->CreateChild("Ground");
+            this->groundNode->SetPosition(Vector3(0.0f, groundHeight / 2.0f, 0.0f));
+            this->groundNode->CreateComponent<RigidBody2D>();
+            auto collisionBox2d = this->groundNode->CreateComponent<CollisionBox2D>();
             collisionBox2d->SetSize(Vector2(groundWidth, groundHeight));
         }
 
@@ -99,27 +99,57 @@ public:
     void Stop() {}
 private:
     SharedPtr<Scene> scene;
-    Node *leftBallNode, *rightBallNode;
-    void HandleNodeCollision(StringHash eventType, VariantMap& eventData) {
-        //auto node = static_cast<Node*>(eventData[NodeBeginContact2D::P_OTHERNODE].GetPtr());
-        //auto s = node->GetName();
-        std::cout << "asdf" << std::endl;
-    }
-    void HandleNodeUpdateContact(StringHash eventType, VariantMap& eventData) {
-        //auto node = static_cast<Node*>(eventData[NodeBeginContact2D::P_OTHERNODE].GetPtr());
-        //auto s = node->GetName();
-        std::cout << "qwer" << std::endl;
-    }
-    void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
-        auto physicsWorld = this->scene->GetComponent<PhysicsWorld2D>();
-        physicsWorld->DrawDebugGeometry();
-    }
+    Node *leftBallNode, *groundNode, *rightBallNode;
     void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
         using namespace KeyDown;
         int key = eventData[P_KEY].GetInt();
         if (key == KEY_ESCAPE) {
             engine_->Exit();
         }
+    }
+    void HandlePhysicsBeginContact2D(StringHash eventType, VariantMap& eventData) {
+        using namespace PhysicsBeginContact2D;
+
+        // nodea
+        auto nodea = static_cast<Node*>(eventData[P_NODEA].GetPtr());
+        std::cout << "node a name " << nodea->GetName().CString() << std::endl;
+        if (nodea == this->leftBallNode) {
+            std::cout << "node a == leftBallNode" << std::endl;
+        } else if (nodea == this->rightBallNode) {
+            std::cout << "node a == rightBallNode" << std::endl;
+        } else if (nodea == this->groundNode) {
+            std::cout << "node a == groundNode" << std::endl;
+        }
+
+        // nodeb
+        auto nodeb = static_cast<Node*>(eventData[P_NODEB].GetPtr());
+        std::cout << "node b name " << nodeb->GetName().CString() << std::endl;
+        if (nodeb == this->leftBallNode) {
+            std::cout << "node b == leftBallNode" << std::endl;
+        } else if (nodeb == this->rightBallNode) {
+            std::cout << "node b == rightBallNode" << std::endl;
+        } else if (nodeb == this->groundNode) {
+            std::cout << "node b == groundNode" << std::endl;
+        }
+
+        //
+        MemoryBuffer contacts(eventData[P_CONTACTS].GetBuffer());
+        while (!contacts.IsEof()) {
+            auto contactPosition = contacts.ReadVector2();
+            auto contactNormal = contacts.ReadVector2();
+            auto contactDistance = contacts.ReadFloat();
+            auto contactImpulse = contacts.ReadFloat();
+            std::cout << "contact position " << contactPosition.ToString().CString() << std::endl;
+            std::cout << "contact normal " << contactNormal.ToString().CString() << std::endl;
+            std::cout << "contact distance " << contactDistance << std::endl;
+            std::cout << "contact impulse " << contactImpulse << std::endl;
+        }
+
+        std::cout << std::endl;
+    }
+    void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
+        auto physicsWorld = this->scene->GetComponent<PhysicsWorld2D>();
+        physicsWorld->DrawDebugGeometry();
     }
 };
 

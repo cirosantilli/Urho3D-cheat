@@ -1,6 +1,6 @@
 /*
-   Expected outcome: two falling balls. When either hits the ground, print a message to stdout.
-   */
+Expected outcome: two falling balls. When either hits the ground, print a message to stdout.
+*/
 
 #include <cassert>
 #include <iostream>
@@ -29,7 +29,7 @@ using namespace Urho3D;
 
 class Main : public Application {
     URHO3D_OBJECT(Main, Application);
-    public:
+public:
     Main(Context* context) : Application(context) {}
     virtual void Setup() override {
         engineParameters_[EP_FULL_SCREEN] = false;
@@ -46,10 +46,10 @@ class Main : public Application {
         auto ballRestitution = 0.7f;
 
         // Events
+        SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
         SubscribeToEvent(E_NODECOLLISIONSTART, URHO3D_HANDLER(Main, HandleNodeCollisionStart));
         SubscribeToEvent(E_PHYSICSCOLLISIONSTART, URHO3D_HANDLER(Main, HandlePhysicsCollisionStart));
         SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Main, HandlePostRenderUpdate));
-        SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
 
         // Scene
         this->scene = new Scene(this->context_);
@@ -71,20 +71,20 @@ class Main : public Application {
 
         // Ground
         {
-            this->nodeGround = scene->CreateChild("Ground");
-            this->nodeGround->SetPosition(Vector3(0.0f, -groundHeight / 2.0, 0.0f));
-            this->nodeGround->SetScale(Vector3(groundWidth, groundHeight, groundWidth));
-            auto rigidBody = this->nodeGround->CreateComponent<RigidBody>();
+            this->groundNode = scene->CreateChild("Ground");
+            this->groundNode->SetPosition(Vector3(0.0f, -groundHeight / 2.0, 0.0f));
+            this->groundNode->SetScale(Vector3(groundWidth, groundHeight, groundWidth));
+            auto rigidBody = this->groundNode->CreateComponent<RigidBody>();
             rigidBody->SetRestitution(1.0);
-            auto collisionShape = this->nodeGround->CreateComponent<CollisionShape>();
+            auto collisionShape = this->groundNode->CreateComponent<CollisionShape>();
             collisionShape->SetBox(Vector3::ONE);
         }
 
         // Falling balls
         {
-            nodeLeft = this->scene->CreateChild("LeftBall");
+            leftBallNode = this->scene->CreateChild("LeftBall");
             {
-                auto& node = nodeLeft;
+                auto& node = leftBallNode;
                 node->SetPosition(Vector3(-windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
                 auto rigidBody = node->CreateComponent<RigidBody>();
                 rigidBody->SetRestitution(ballRestitution);
@@ -92,15 +92,15 @@ class Main : public Application {
                 auto collisionShape = node->CreateComponent<CollisionShape>();
                 collisionShape->SetSphere(2.0f * ballRadius);
             }
-            nodeRight = nodeLeft->Clone();
-            nodeRight->SetName("RightBall");
-            nodeRight->SetPosition(Vector3(windowWidth / 4.0f, windowHeight * (3.0f / 4.0f), 0.0f));
+            rightBallNode = leftBallNode->Clone();
+            rightBallNode->SetName("RightBall");
+            rightBallNode->SetPosition(Vector3(windowWidth / 4.0f, windowHeight * (3.0f / 4.0f), 0.0f));
         }
     }
     void Stop() {}
-    private:
+private:
     SharedPtr<Scene> scene;
-    Node *nodeLeft, *nodeRight, *nodeGround;
+    Node *leftBallNode, *rightBallNode, *groundNode;
     void HandleNodeCollisionStart(StringHash eventType, VariantMap& eventData) {
         using namespace NodeCollisionStart;
         std::cout << "HandleNodeCollisionStart" << std::endl;
@@ -131,41 +131,52 @@ class Main : public Application {
         using namespace PhysicsCollisionStart;
         std::cout << "HandlePhysicsCollisionStart" << std::endl;
         assert(eventType == E_PHYSICSCOLLISIONSTART);
+
+        // nodea
         auto nodea = static_cast<Node*>(eventData[P_NODEA].GetPtr());
         std::cout << "node a name " << nodea->GetName().CString() << std::endl;
-        if (nodea == this->nodeLeft) {
-            std::cout << "node a == nodeLeft" << std::endl;
-        } else if (nodea == this->nodeRight) {
-            std::cout << "node a == nodeRight" << std::endl;
-        } else if (nodea == this->nodeGround) {
-            std::cout << "node a == nodeGround" << std::endl;
+        if (nodea == this->leftBallNode) {
+            std::cout << "node a == leftBallNode" << std::endl;
+        } else if (nodea == this->rightBallNode) {
+            std::cout << "node a == rightBallNode" << std::endl;
+        } else if (nodea == this->groundNode) {
+            std::cout << "node a == groundNode" << std::endl;
         }
+
+        // nodeb
         auto nodeb = static_cast<Node*>(eventData[P_NODEB].GetPtr());
         std::cout << "node b name " << nodeb->GetName().CString() << std::endl;
-        if (nodeb == this->nodeLeft) {
-            std::cout << "node b == nodeLeft" << std::endl;
-        } else if (nodeb == this->nodeRight) {
-            std::cout << "node b == nodeRight" << std::endl;
-        } else if (nodeb == this->nodeGround) {
-            std::cout << "node b == nodeGround" << std::endl;
+        if (nodeb == this->leftBallNode) {
+            std::cout << "node b == leftBallNode" << std::endl;
+        } else if (nodeb == this->rightBallNode) {
+            std::cout << "node b == rightBallNode" << std::endl;
+        } else if (nodeb == this->groundNode) {
+            std::cout << "node b == groundNode" << std::endl;
         }
+
+        // bodies
         auto bodya = static_cast<RigidBody*>(eventData[P_BODYA].GetPtr());
         std::cout << "body a mass " << bodya->GetMass() << std::endl;
         auto bodyb = static_cast<RigidBody*>(eventData[P_BODYB].GetPtr());
         std::cout << "body b mass " << bodyb->GetMass() << std::endl;
+
+        // trigger
         auto trigger = static_cast<Node*>(eventData[P_TRIGGER].GetPtr());
         std::cout << "trigger " << trigger << std::endl;
+
+        // contact
         MemoryBuffer contacts(eventData[P_CONTACTS].GetBuffer());
         while (!contacts.IsEof()) {
-            Vector3 contactPosition = contacts.ReadVector3();
-            Vector3 contactNormal = contacts.ReadVector3();
-            float contactDistance = contacts.ReadFloat();
-            float contactImpulse = contacts.ReadFloat();
+            auto contactPosition = contacts.ReadVector3();
+            auto contactNormal = contacts.ReadVector3();
+            auto contactDistance = contacts.ReadFloat();
+            auto contactImpulse = contacts.ReadFloat();
             std::cout << "contact position " << contactPosition.ToString().CString() << std::endl;
             std::cout << "contact normal " << contactNormal.ToString().CString() << std::endl;
             std::cout << "contact distance " << contactDistance << std::endl;
             std::cout << "contact impulse " << contactImpulse << std::endl;
         }
+
         std::cout << std::endl;
     }
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
