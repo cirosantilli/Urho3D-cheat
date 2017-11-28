@@ -80,21 +80,22 @@ public:
             collisionShape->SetBox(Vector3::ONE);
         }
 
-        // Falling balls
+        // Left ball
         {
-            leftBallNode = this->scene->CreateChild("LeftBall");
-            {
-                auto& node = leftBallNode;
-                node->SetPosition(Vector3(-windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
-                auto rigidBody = node->CreateComponent<RigidBody>();
-                rigidBody->SetRestitution(ballRestitution);
-                rigidBody->SetMass(1.0f);
-                auto collisionShape = node->CreateComponent<CollisionShape>();
-                collisionShape->SetSphere(2.0f * ballRadius);
-            }
-            rightBallNode = leftBallNode->Clone();
-            rightBallNode->SetName("RightBall");
-            rightBallNode->SetPosition(Vector3(windowWidth / 4.0f, windowHeight * (3.0f / 4.0f), 0.0f));
+            this->leftBallNode = this->scene->CreateChild("LeftBall");
+            this->leftBallNode->SetPosition(Vector3(-windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
+            auto rigidBody = this->leftBallNode->CreateComponent<RigidBody>();
+            rigidBody->SetRestitution(ballRestitution);
+            rigidBody->SetMass(1.0f);
+            auto collisionShape = this->leftBallNode->CreateComponent<CollisionShape>();
+            collisionShape->SetSphere(2.0f * ballRadius);
+        }
+
+        // Right ball
+        {
+            this->rightBallNode = leftBallNode->Clone();
+            this->rightBallNode->SetName("RightBall");
+            this->rightBallNode->SetPosition(Vector3(windowWidth / 4.0f, windowHeight * (3.0f / 4.0f), 0.0f));
         }
     }
     void Stop() {}
