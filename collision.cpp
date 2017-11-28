@@ -18,7 +18,7 @@ https://stackoverflow.com/questions/47505166/how-to-detect-collisions-in-urho3d-
 #include <Urho3D/Graphics/Renderer.h>
 #include <Urho3D/Input/Input.h>
 #include <Urho3D/Input/InputEvents.h>
-#include <Urho3D/Physics/PhysicsEvents.h>
+#include <Urho3D/Scene/Node.h>
 #include <Urho3D/Scene/Scene.h>
 #include <Urho3D/Scene/SceneEvents.h>
 #include <Urho3D/Urho2D/CollisionBox2D.h>
@@ -48,31 +48,32 @@ public:
         auto ballRestitution = 0.8f;
 
         // Events
+        SubscribeToEvent(E_NODEUPDATECONTACT2D, URHO3D_HANDLER(Main, HandleNodeUpdateContact));
         SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Main, HandleNodeCollision));
         SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Main, HandlePostRenderUpdate));
         SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
 
         // Scene
-        this->scene_ = new Scene(this->context_);
-        this->scene_->CreateComponent<Octree>();
-        this->scene_->CreateComponent<DebugRenderer>();
-        this->scene_->CreateComponent<PhysicsWorld2D>();
-        auto physicsWorld = scene_->GetComponent<PhysicsWorld2D>();
+        this->scene = new Scene(this->context_);
+        this->scene->CreateComponent<Octree>();
+        this->scene->CreateComponent<DebugRenderer>();
+        this->scene->CreateComponent<PhysicsWorld2D>();
+        auto physicsWorld = scene->GetComponent<PhysicsWorld2D>();
         physicsWorld->SetGravity(Vector2(0.0f, -10.0f));
 
         // Graphics
-        auto cameraNode_ = this->scene_->CreateChild("Camera");
-        cameraNode_->SetPosition(Vector3(0.0f, windowHeight / 2.0, -1.0f));
-        auto camera = cameraNode_->CreateComponent<Camera>();
+        auto cameraNode = this->scene->CreateChild("Camera");
+        cameraNode->SetPosition(Vector3(0.0f, windowHeight / 2.0, -1.0f));
+        auto camera = cameraNode->CreateComponent<Camera>();
         camera->SetOrthographic(true);
         camera->SetOrthoSize(windowWidth);
         auto renderer = GetSubsystem<Renderer>();
-        SharedPtr<Viewport> viewport(new Viewport(context_, this->scene_, cameraNode_->GetComponent<Camera>()));
+        SharedPtr<Viewport> viewport(new Viewport(context_, this->scene, cameraNode->GetComponent<Camera>()));
         renderer->SetViewport(0, viewport);
 
         // Ground
         {
-            auto node = this->scene_->CreateChild("Ground");
+            auto node = this->scene->CreateChild("Ground");
             node->SetPosition(Vector3(0.0f, groundHeight / 2.0f, 0.0f));
             node->CreateComponent<RigidBody2D>();
             auto collisionBox2d = node->CreateComponent<CollisionBox2D>();
@@ -81,28 +82,36 @@ public:
 
         // Falling balls
         {
-            auto nodeLeft  = this->scene_->CreateChild("BallLeft");
+            this->leftBallNode = this->scene->CreateChild("LeftBall");
             {
-                auto& node = nodeLeft;
-                node->SetPosition(Vector3(-windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
-                auto body = node->CreateComponent<RigidBody2D>();
+                this->leftBallNode->SetPosition(Vector3(-windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
+                auto body = this->leftBallNode->CreateComponent<RigidBody2D>();
                 body->SetBodyType(BT_DYNAMIC);
-                auto collisionCircle2d = node->CreateComponent<CollisionCircle2D>();
+                auto collisionCircle2d = this->leftBallNode->CreateComponent<CollisionCircle2D>();
                 collisionCircle2d->SetRadius(ballRadius);
                 collisionCircle2d->SetRestitution(ballRestitution);
             }
-            auto nodeRight = nodeLeft->Clone();
-            nodeRight->SetPosition(Vector3(windowWidth / 4.0f, windowHeight * (3.0f / 4.0f), 0.0f));
+            this->rightBallNode = this->leftBallNode->Clone();
+			this->rightBallNode->SetName("RightBall");
+            this->rightBallNode->SetPosition(Vector3(windowWidth / 4.0f, windowHeight * (3.0f / 4.0f), 0.0f));
         }
     }
     void Stop() {}
 private:
-    SharedPtr<Scene> scene_;
+    SharedPtr<Scene> scene;
+    Node *leftBallNode, *rightBallNode;
     void HandleNodeCollision(StringHash eventType, VariantMap& eventData) {
+        //auto node = static_cast<Node*>(eventData[NodeBeginContact2D::P_OTHERNODE].GetPtr());
+        //auto s = node->GetName();
         std::cout << "asdf" << std::endl;
     }
+    void HandleNodeUpdateContact(StringHash eventType, VariantMap& eventData) {
+        //auto node = static_cast<Node*>(eventData[NodeBeginContact2D::P_OTHERNODE].GetPtr());
+        //auto s = node->GetName();
+        std::cout << "qwer" << std::endl;
+    }
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
-        auto physicsWorld = this->scene_->GetComponent<PhysicsWorld2D>();
+        auto physicsWorld = this->scene->GetComponent<PhysicsWorld2D>();
         physicsWorld->DrawDebugGeometry();
     }
     void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {

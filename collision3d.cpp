@@ -2,6 +2,7 @@
 Expected outcome: two falling balls. When either hits the ground, print a message to stdout.
 */
 
+#include <cassert>
 #include <iostream>
 
 #include <Urho3D/Core/CoreEvents.h>
@@ -14,6 +15,7 @@ Expected outcome: two falling balls. When either hits the ground, print a messag
 #include <Urho3D/Graphics/Octree.h>
 #include <Urho3D/Graphics/Renderer.h>
 #include <Urho3D/Graphics/Zone.h>
+#include <Urho3D/IO/MemoryBuffer.h>
 #include <Urho3D/Input/Input.h>
 #include <Urho3D/Input/InputEvents.h>
 #include <Urho3D/Physics/CollisionShape.h>
@@ -44,31 +46,32 @@ public:
         auto ballRestitution = 0.7f;
 
         // Events
-        SubscribeToEvent(E_NODECOLLISION, URHO3D_HANDLER(Main, HandleNodeCollision));
+        SubscribeToEvent(E_NODECOLLISIONSTART, URHO3D_HANDLER(Main, HandleNodeCollisionStart));
+        SubscribeToEvent(E_PHYSICSCOLLISIONSTART, URHO3D_HANDLER(Main, HandlePhysicsCollisionStart));
         SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Main, HandlePostRenderUpdate));
         SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
 
         // Scene
-        this->scene_ = new Scene(this->context_);
-        this->scene_->CreateComponent<Octree>();
-        this->scene_->CreateComponent<DebugRenderer>();
-        this->scene_->CreateComponent<PhysicsWorld>();
-        auto physicsWorld = scene_->GetComponent<PhysicsWorld>();
+        this->scene = new Scene(this->context_);
+        this->scene->CreateComponent<Octree>();
+        this->scene->CreateComponent<DebugRenderer>();
+        this->scene->CreateComponent<PhysicsWorld>();
+        auto physicsWorld = scene->GetComponent<PhysicsWorld>();
         physicsWorld->SetGravity(Vector2(0.0f, -10.0f));
         auto cache = GetSubsystem<ResourceCache>();
 
         // Graphics
-        auto cameraNode_ = this->scene_->CreateChild("Camera");
-        cameraNode_->SetPosition(Vector3(0.0f, windowHeight / 4.0, -1.5 * windowWidth));
-        auto camera = cameraNode_->CreateComponent<Camera>();
+        auto cameraNode = this->scene->CreateChild("Camera");
+        cameraNode->SetPosition(Vector3(0.0f, windowHeight / 4.0, -1.5 * windowWidth));
+        auto camera = cameraNode->CreateComponent<Camera>();
         camera->SetFarClip(500.0f);
         auto renderer = GetSubsystem<Renderer>();
-        SharedPtr<Viewport> viewport(new Viewport(context_, scene_, cameraNode_->GetComponent<Camera>()));
+        SharedPtr<Viewport> viewport(new Viewport(context_, scene, cameraNode->GetComponent<Camera>()));
         renderer->SetViewport(0, viewport);
 
         // Ground
         {
-            auto node = scene_->CreateChild("Ground");
+            auto node = scene->CreateChild("Ground");
             node->SetPosition(Vector3(0.0f, -groundHeight / 2.0, 0.0f));
             node->SetScale(Vector3(groundWidth, groundHeight, groundWidth));
             auto rigidBody = node->CreateComponent<RigidBody>();
@@ -79,7 +82,7 @@ public:
 
         // Falling balls
         {
-            auto nodeLeft = this->scene_->CreateChild("Ball");
+            auto nodeLeft = this->scene->CreateChild("LeftBall");
             {
                 auto& node = nodeLeft;
                 node->SetPosition(Vector3(-windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
@@ -90,17 +93,68 @@ public:
                 collisionShape->SetSphere(2.0f * ballRadius);
             }
             auto nodeRight = nodeLeft->Clone();
+            nodeRight->SetName("RightBall");
             nodeRight->SetPosition(Vector3(windowWidth / 4.0f, windowHeight * (3.0f / 4.0f), 0.0f));
         }
     }
     void Stop() {}
 private:
-    SharedPtr<Scene> scene_;
-    void HandleNodeCollision(StringHash eventType, VariantMap& eventData) {
-        std::cout << "asdf" << std::endl;
+    SharedPtr<Scene> scene;
+    void HandleNodeCollisionStart(StringHash eventType, VariantMap& eventData) {
+		using namespace NodeCollisionStart;
+		std::cout << "HandleNodeCollisionStart" << std::endl;
+		assert(eventType == E_NODECOLLISIONSTART);
+		auto body = static_cast<RigidBody*>(eventData[P_BODY].GetPtr());
+        std::cout << "this body mass " << body->GetMass() << std::endl;
+		auto otherBody = static_cast<RigidBody*>(eventData[P_OTHERBODY].GetPtr());
+        std::cout << "other body mass " << otherBody->GetMass() << std::endl;
+		auto otherNode = static_cast<Node*>(eventData[P_OTHERNODE].GetPtr());
+        std::cout << "other node name " << otherNode->GetName().CString() << std::endl;
+		auto trigger = static_cast<bool>(eventData[P_TRIGGER].GetPtr());
+        std::cout << "trigger " << trigger << std::endl;
+		MemoryBuffer contacts(eventData[P_CONTACTS].GetBuffer());
+		while (!contacts.IsEof()) {
+			Vector3 contactPosition = contacts.ReadVector3();
+			Vector3 contactNormal = contacts.ReadVector3();
+			float contactDistance = contacts.ReadFloat();
+			float contactImpulse = contacts.ReadFloat();
+			std::cout << "contact position " << contactPosition.ToString().CString() << std::endl;
+			std::cout << "contact normal " << contactNormal.ToString().CString() << std::endl;
+			std::cout << "contact distance " << contactDistance << std::endl;
+			std::cout << "contact impulse " << contactImpulse << std::endl;
+		}
+        std::cout << std::endl;
+
+    }
+    void HandlePhysicsCollisionStart(StringHash eventType, VariantMap& eventData) {
+		using namespace PhysicsCollisionStart;
+		std::cout << "HandlePhysicsCollisionStart" << std::endl;
+		assert(eventType == E_PHYSICSCOLLISIONSTART);
+		auto noda = static_cast<Node*>(eventData[P_NODEA].GetPtr());
+        std::cout << "node a name " << noda->GetName().CString() << std::endl;
+		auto nodb = static_cast<Node*>(eventData[P_NODEB].GetPtr());
+        std::cout << "node b name " << nodb->GetName().CString() << std::endl;
+		auto bodya = static_cast<RigidBody*>(eventData[P_BODYA].GetPtr());
+        std::cout << "body a mass " << bodya->GetMass() << std::endl;
+		auto bodyb = static_cast<RigidBody*>(eventData[P_BODYB].GetPtr());
+        std::cout << "body b mass " << bodyb->GetMass() << std::endl;
+		auto trigger = static_cast<Node*>(eventData[P_TRIGGER].GetPtr());
+        std::cout << "trigger " << trigger << std::endl;
+		MemoryBuffer contacts(eventData[P_CONTACTS].GetBuffer());
+		while (!contacts.IsEof()) {
+			Vector3 contactPosition = contacts.ReadVector3();
+			Vector3 contactNormal = contacts.ReadVector3();
+			float contactDistance = contacts.ReadFloat();
+			float contactImpulse = contacts.ReadFloat();
+			std::cout << "contact position " << contactPosition.ToString().CString() << std::endl;
+			std::cout << "contact normal " << contactNormal.ToString().CString() << std::endl;
+			std::cout << "contact distance " << contactDistance << std::endl;
+			std::cout << "contact impulse " << contactImpulse << std::endl;
+		}
+        std::cout << std::endl;
     }
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
-        scene_->GetComponent<PhysicsWorld>()->DrawDebugGeometry(true);
+        scene->GetComponent<PhysicsWorld>()->DrawDebugGeometry(true);
     }
     void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
         using namespace KeyDown;
