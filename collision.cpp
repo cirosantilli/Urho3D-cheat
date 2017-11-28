@@ -92,7 +92,7 @@ public:
                 collisionCircle2d->SetRestitution(ballRestitution);
             }
             this->rightBallNode = this->leftBallNode->Clone();
-			this->rightBallNode->SetName("RightBall");
+            this->rightBallNode->SetName("RightBall");
             this->rightBallNode->SetPosition(Vector3(windowWidth / 4.0f, windowHeight * (3.0f / 4.0f), 0.0f));
         }
     }
