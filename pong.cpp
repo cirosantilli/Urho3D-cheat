@@ -14,16 +14,20 @@ Single player pong.
 #include <Urho3D/Graphics/Graphics.h>
 #include <Urho3D/Graphics/Octree.h>
 #include <Urho3D/Graphics/Renderer.h>
+#include <Urho3D/IO/MemoryBuffer.h>
 #include <Urho3D/Input/Input.h>
 #include <Urho3D/Input/InputEvents.h>
-#include <Urho3D/IO/MemoryBuffer.h>
+#include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/Scene/Node.h>
 #include <Urho3D/Scene/Scene.h>
 #include <Urho3D/Scene/SceneEvents.h>
+#include <Urho3D/UI/Font.h>
+#include <Urho3D/UI/Text.h>
+#include <Urho3D/UI/UI.h>
 #include <Urho3D/Urho2D/CollisionBox2D.h>
 #include <Urho3D/Urho2D/CollisionCircle2D.h>
-#include <Urho3D/Urho2D/PhysicsWorld2D.h>
 #include <Urho3D/Urho2D/PhysicsEvents2D.h>
+#include <Urho3D/Urho2D/PhysicsWorld2D.h>
 #include <Urho3D/Urho2D/RigidBody2D.h>
 
 using namespace Urho3D;
@@ -39,17 +43,20 @@ public:
         engineParameters_[EP_WINDOW_WIDTH] = 512;
     }
     void Start() {
-        auto windowWidth = 10.0f;
+        auto windowWidth = 1.0f;
         auto windowHeight = windowWidth;
-        auto groundWidth = windowWidth;
-        auto groundHeight = 1.0f;
-        auto ballRadius = 0.5f;
+        auto wallLength = windowWidth;
+        auto wallWidth = windowWidth / 20.0f;
+        auto ballRadius = windowWidth / 20.0f;
         auto ballRestitution = 1.0f;
+        auto playerLength = windowHeight / 4.0f;
+        this->score = 0;
 
         // Events
         SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
         SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Main, HandlePhysicsBeginContact2D));
         SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Main, HandlePostRenderUpdate));
+        SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Main, HandleUpdate));
 
         // Scene
         this->scene = new Scene(this->context_);
@@ -61,7 +68,7 @@ public:
 
         // Graphics
         auto cameraNode = this->scene->CreateChild("Camera");
-        cameraNode->SetPosition(Vector3(0.0f, windowHeight / 2.0, -1.0f));
+        cameraNode->SetPosition(Vector3(windowWidth / 2.0f, windowHeight / 2.0f, -1.0f));
         auto camera = cameraNode->CreateComponent<Camera>();
         camera->SetOrthographic(true);
         camera->SetOrthoSize(windowWidth);
@@ -69,21 +76,65 @@ public:
         SharedPtr<Viewport> viewport(new Viewport(context_, this->scene, cameraNode->GetComponent<Camera>()));
         renderer->SetViewport(0, viewport);
 
-        // Ground
+		// Score
+		ResourceCache* cache = GetSubsystem<ResourceCache>();
+		auto ui = GetSubsystem<UI>();
+		this->text = ui->GetRoot()->CreateChild<Text>();
+		this->text->SetText(std::to_string(this->score).c_str());
+		this->text->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
+		this->text->SetHorizontalAlignment(HA_CENTER);
+		this->text->SetVerticalAlignment(VA_CENTER);
+
         {
-            this->groundNode = this->scene->CreateChild("Ground");
-            this->groundNode->SetPosition(Vector3(0.0f, groundHeight / 2.0f, 0.0f));
-            this->groundNode->CreateComponent<RigidBody2D>();
-            auto collisionBox2d = this->groundNode->CreateComponent<CollisionBox2D>();
-            collisionBox2d->SetSize(Vector2(groundWidth, groundHeight));
+            this->wallNode = this->scene->CreateChild("BottomWall");
+            this->wallNode->SetPosition(Vector3(windowWidth / 2.0, wallWidth / 2.0f, 0.0f));
+            this->wallNode->CreateComponent<RigidBody2D>();
+            auto collisionBox2d = this->wallNode->CreateComponent<CollisionBox2D>();
+            collisionBox2d->SetSize(Vector2(wallLength, wallWidth));
+            collisionBox2d->SetRestitution(1.0);
         }
+
+		{
+			auto node = this->wallNode->Clone();
+			node->SetName("TopWall");
+			node->SetPosition(Vector3(windowWidth / 2.0f, windowHeight - (wallWidth / 2.0f), 0.0f));
+        }
+
+		{
+            auto node = this->wallNode->Clone();
+            node->SetName("RightWall");
+            node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
+			node->SetPosition(Vector3(windowWidth - (wallWidth / 2.0f), windowHeight / 2.0f, 0.0f));
+        }
+
+		//{
+            //auto node = this->wallNode->Clone();
+            //node->SetName("LeftWall");
+            //node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
+			//node->SetPosition(Vector3(-wallWidth / 2.0f, windowHeight / 2.0f, 0.0f));
+        //}
+
+		{
+            this->playerNode = this->wallNode->Clone();
+            this->playerNode->SetName("Player");
+            this->playerNode->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
+            this->playerNode->SetPosition(Vector3(wallWidth / 2.0f, windowHeight / 2.0f, 0.0f));
+            auto body = this->playerNode->GetComponent<RigidBody2D>();
+            body->SetBodyType(BT_DYNAMIC);
+            body->SetFixedRotation(true);
+            body->SetMass(1.0);
+            auto box = this->playerNode->GetComponent<CollisionBox2D>();
+            box->SetSize(Vector2(playerLength, wallWidth));
+        }
+
 
         // Ball
         {
             this->ballNode = this->scene->CreateChild("Ball");
-            this->ballNode->SetPosition(Vector3(-windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
+            this->ballNode->SetPosition(Vector3(windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
             auto body = this->ballNode->CreateComponent<RigidBody2D>();
             body->SetBodyType(BT_DYNAMIC);
+            body->SetLinearVelocity(Vector2(0.0f, -1.01f));
             auto collisionCircle2d = this->ballNode->CreateComponent<CollisionCircle2D>();
             collisionCircle2d->SetRadius(ballRadius);
             collisionCircle2d->SetRestitution(ballRestitution);
@@ -92,7 +143,9 @@ public:
     void Stop() {}
 private:
     SharedPtr<Scene> scene;
-    Node *ballNode, *groundNode;
+    Node *ballNode, *playerNode, *wallNode;
+    Text *text;
+    uint64_t score;
     void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
         using namespace KeyDown;
         int key = eventData[P_KEY].GetInt();
@@ -107,8 +160,8 @@ private:
         std::cout << "node a name " << nodea->GetName().CString() << std::endl;
         if (nodea == this->ballNode) {
             std::cout << "node a == ballNode" << std::endl;
-        } else if (nodea == this->groundNode) {
-            std::cout << "node a == groundNode" << std::endl;
+        } else if (nodea == this->wallNode) {
+            std::cout << "node a == wallNode" << std::endl;
         }
 
         auto nodeb = static_cast<Node*>(eventData[P_NODEB].GetPtr());
@@ -116,10 +169,25 @@ private:
         if (nodeb == this->ballNode) {
             std::cout << "node b == ballNode" << std::endl;
         } else if (nodeb == this->ballNode) {
-            std::cout << "node b == groundNode" << std::endl;
+            std::cout << "node b == wallNode" << std::endl;
         }
 
+		this->score++;
+		this->text->SetText(std::to_string(this->score).c_str());
+
         std::cout << std::endl;
+    }
+    void HandleUpdate(StringHash eventType, VariantMap& eventData) {
+        auto input = GetSubsystem<Input>();
+        if (input->GetKeyDown(KEY_DOWN)) {
+            //ApplyForceToCenter(Vector2(0.0f, -1.0f), true);
+            //this->playerNode->Translate(Vector3(0, -0.01, 0.0));
+			auto body = this->playerNode->CreateComponent<RigidBody2D>();
+			body->ApplyLinearImpulseToCenter(Vector2(-10.0f, -10.0f), true);
+            std::cout << "down" << std::endl;
+        } else if (input->GetKeyDown(KEY_UP)) {
+            std::cout << "up" << std::endl;
+        }
     }
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
         auto physicsWorld = this->scene->GetComponent<PhysicsWorld2D>();

@@ -47,11 +47,13 @@ public:
         auto groundHeight = 1.0f;
         auto ballRadius = 0.5f;
         auto ballRestitution = 0.8f;
+        this->steps = 0;
 
         // Events
         SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
         SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Main, HandlePhysicsBeginContact2D));
         SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Main, HandlePostRenderUpdate));
+        SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Main, HandleUpdate));
 
         // Scene
         this->scene = new Scene(this->context_);
@@ -102,6 +104,10 @@ public:
 private:
     SharedPtr<Scene> scene;
     Node *leftBallNode, *groundNode, *rightBallNode;
+    uint64_t steps;
+    void HandleUpdate(StringHash /*eventType*/, VariantMap& eventData) {
+        this->steps++;
+    }
     void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
         using namespace KeyDown;
         int key = eventData[P_KEY].GetInt();
@@ -111,6 +117,8 @@ private:
     }
     void HandlePhysicsBeginContact2D(StringHash eventType, VariantMap& eventData) {
         using namespace PhysicsBeginContact2D;
+
+        std::cout << "steps " << std::endl;
 
         // nodea
         auto nodea = static_cast<Node*>(eventData[P_NODEA].GetPtr());
