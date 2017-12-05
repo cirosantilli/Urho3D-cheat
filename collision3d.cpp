@@ -38,11 +38,13 @@ public:
         engineParameters_[EP_WINDOW_WIDTH] = 512;
     }
     void Start() {
+        // TODO: balls float midair if 1.0f.
+        // See: velocity_stop.cpp for a minimzed 2D version.
         auto windowWidth = 10.0f;
         auto windowHeight = windowWidth;
         auto groundWidth = windowWidth;
-        auto groundHeight = 1.0f;
-        auto ballRadius = 0.5f;
+        auto groundHeight = windowWidth / 10.0f;
+        auto ballRadius = windowWidth / 20.0f;
         auto ballRestitution = 0.7f;
 
         // Events
@@ -57,7 +59,7 @@ public:
         this->scene->CreateComponent<DebugRenderer>();
         this->scene->CreateComponent<PhysicsWorld>();
         auto physicsWorld = scene->GetComponent<PhysicsWorld>();
-        physicsWorld->SetGravity(Vector2(0.0f, -10.0f));
+        physicsWorld->SetGravity(Vector2(0.0f, -windowWidth));
         auto cache = GetSubsystem<ResourceCache>();
 
         // Graphics
@@ -71,31 +73,34 @@ public:
 
         // Ground
         {
-            this->groundNode = scene->CreateChild("Ground");
-            this->groundNode->SetPosition(Vector3(0.0f, -groundHeight / 2.0, 0.0f));
-            this->groundNode->SetScale(Vector3(groundWidth, groundHeight, groundWidth));
-            auto rigidBody = this->groundNode->CreateComponent<RigidBody>();
-            rigidBody->SetRestitution(1.0);
-            auto collisionShape = this->groundNode->CreateComponent<CollisionShape>();
-            collisionShape->SetBox(Vector3::ONE);
+            auto& node = this->groundNode;
+            node = scene->CreateChild("Ground");
+            node->SetPosition(Vector3(0.0f, -groundHeight / 2.0, 0.0f));
+            node->SetScale(Vector3(groundWidth, groundHeight, groundWidth));
+            auto body = node->CreateComponent<RigidBody>();
+            body->SetRestitution(1.0);
+            auto shape = node->CreateComponent<CollisionShape>();
+            shape->SetBox(Vector3::ONE);
         }
 
         // Left ball
         {
-            this->leftBallNode = this->scene->CreateChild("LeftBall");
-            this->leftBallNode->SetPosition(Vector3(-windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
-            auto rigidBody = this->leftBallNode->CreateComponent<RigidBody>();
-            rigidBody->SetRestitution(ballRestitution);
-            rigidBody->SetMass(1.0f);
-            auto collisionShape = this->leftBallNode->CreateComponent<CollisionShape>();
-            collisionShape->SetSphere(2.0f * ballRadius);
+            auto& node = this->leftBallNode;
+            node = this->scene->CreateChild("LeftBall");
+            node->SetPosition(Vector3(-windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
+            auto body = node->CreateComponent<RigidBody>();
+            body->SetRestitution(ballRestitution);
+            body->SetMass(1.0f);
+            auto shape = node->CreateComponent<CollisionShape>();
+            shape->SetSphere(2.0f * ballRadius);
         }
 
         // Right ball
         {
-            this->rightBallNode = leftBallNode->Clone();
-            this->rightBallNode->SetName("RightBall");
-            this->rightBallNode->SetPosition(Vector3(windowWidth / 4.0f, windowHeight * (3.0f / 4.0f), 0.0f));
+            auto& node = this->rightBallNode;
+            node = leftBallNode->Clone();
+            node->SetName("RightBall");
+            node->SetPosition(Vector3(windowWidth / 4.0f, windowHeight * (3.0f / 4.0f), 0.0f));
         }
     }
     void Stop() {}
