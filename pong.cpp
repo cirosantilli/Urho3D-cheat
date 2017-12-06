@@ -66,6 +66,7 @@ public:
         this->scene->CreateComponent<PhysicsWorld2D>();
         auto physicsWorld = scene->GetComponent<PhysicsWorld2D>();
         physicsWorld->SetGravity(Vector2(0.0f, 0.0f));
+        this->physicsWorld = this->scene->GetComponent<PhysicsWorld2D>();
 
         // Graphics
         auto cameraNode = this->scene->CreateChild("Camera");
@@ -155,6 +156,7 @@ private:
     Node *ballNode, *playerNode, *leftWallNode, *rightWallNode;
     Text *text;
     Input *input;
+    PhysicsWorld2D *physicsWorld;
     uint64_t score;
     void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
         using namespace KeyDown;
@@ -200,8 +202,7 @@ private:
         }
     }
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
-        auto physicsWorld = this->scene->GetComponent<PhysicsWorld2D>();
-        physicsWorld->DrawDebugGeometry();
+        this->physicsWorld->DrawDebugGeometry();
     }
 };
 
