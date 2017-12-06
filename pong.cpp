@@ -51,6 +51,7 @@ public:
         auto ballRestitution = 1.0f;
         auto playerLength = windowHeight / 4.0f;
         this->score = 0;
+        this->input = this->GetSubsystem<Input>();
 
         // Events
         SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
@@ -153,6 +154,7 @@ private:
     SharedPtr<Scene> scene;
     Node *ballNode, *playerNode, *leftWallNode, *rightWallNode;
     Text *text;
+    Input *input;
     uint64_t score;
     void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
         using namespace KeyDown;
@@ -183,17 +185,18 @@ private:
         this->text->SetText(std::to_string(this->score).c_str());
     }
     void HandleUpdate(StringHash eventType, VariantMap& eventData) {
-        auto input = GetSubsystem<Input>();
-        auto impuseMagnitude = this->windowWidth / 10000.0f;
+        using namespace Update;
+        auto timeStep = eventData[P_TIMESTEP].GetFloat();
+        auto impuseMagnitude = (this->windowWidth * 2.0f) * timeStep;
         auto body = this->playerNode->GetComponent<RigidBody2D>();
-        if (input->GetKeyDown(KEY_DOWN)) {
-            body->ApplyLinearImpulseToCenter(Vector2(0.0f, -impuseMagnitude), true);
-        } else if (input->GetKeyDown(KEY_UP)) {
-            body->ApplyLinearImpulseToCenter(Vector2(0.0f, impuseMagnitude), true);
-        } else if (input->GetKeyDown(KEY_RIGHT)) {
-            body->ApplyLinearImpulseToCenter(Vector2(impuseMagnitude, 0.0f), true);
+        if (this->input->GetKeyDown(KEY_DOWN)) {
+            body->ApplyForceToCenter(Vector2(0.0f, -impuseMagnitude), true);
+        } else if (this->input->GetKeyDown(KEY_UP)) {
+            body->ApplyForceToCenter(Vector2(0.0f, impuseMagnitude), true);
+        } else if (this->input->GetKeyDown(KEY_RIGHT)) {
+            body->ApplyForceToCenter(Vector2(impuseMagnitude, 0.0f), true);
         } else if (input->GetKeyDown(KEY_LEFT)) {
-            body->ApplyLinearImpulseToCenter(Vector2(-impuseMagnitude, 0.0f), true);
+            body->ApplyForceToCenter(Vector2(-impuseMagnitude, 0.0f), true);
         }
     }
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
