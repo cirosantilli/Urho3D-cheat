@@ -45,7 +45,7 @@ public:
         auto groundWidth = windowWidth;
         auto groundHeight = windowWidth / 10.0f;
         auto ballRadius = windowWidth / 20.0f;
-        auto ballRestitution = 0.7f;
+        auto ballRestitution = 0.75f;
 
         // Events
         SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
