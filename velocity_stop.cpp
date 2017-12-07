@@ -1,5 +1,9 @@
 /*
-TODO: why does the ball not bounce if the velocity <= 1.0?
+We have to hack b2Settings::b2_velocityThreshold in the Box2D source to something below 1.0
+for the 1.0 velocity to bounce back. 1.01 bounces back fine.
+
+- https://gamedev.stackexchange.com/questions/84737/why-do-my-box2d-bodies-occasionally-get-stuck-and-separate-forcibly/151878#151878
+- https://stackoverflow.com/questions/5381399/how-can-i-prevent-a-ball-from-sticking-to-walls-in-box2d
 */
 
 #include <iostream>
@@ -46,7 +50,7 @@ public:
         auto groundWidth = windowWidth;
         auto groundHeight = windowWidth / 10.0f;
         auto ballRadius = windowWidth / 20.0f;
-        auto ballRestitution = 0.8f;
+        auto ballRestitution = 1.0f;
         this->steps = 0;
 
         // Events
@@ -75,29 +79,33 @@ public:
 
         // Ground
         {
-            this->groundNode = this->scene->CreateChild("Ground");
-            this->groundNode->SetPosition(Vector3(0.0f, groundHeight / 2.0f, 0.0f));
-            this->groundNode->CreateComponent<RigidBody2D>();
-            auto collisionBox2d = this->groundNode->CreateComponent<CollisionBox2D>();
-            collisionBox2d->SetSize(Vector2(groundWidth, groundHeight));
+            auto node = this->scene->CreateChild("Ground");
+            node->SetPosition(Vector3(0.0f, groundHeight / 2.0f, 0.0f));
+            node->CreateComponent<RigidBody2D>();
+            auto shape = node->CreateComponent<CollisionBox2D>();
+            shape->SetSize(Vector2(groundWidth, groundHeight));
+            shape->SetDensity(1.0);
+            shape->SetFriction(1.0f);
+            shape->SetRestitution(1.0);
         }
 
         // Ball
         {
-            this->ballNode = this->scene->CreateChild("LeftBall");
-            this->ballNode->SetPosition(Vector3(0.0f, windowHeight / 2.0f, 0.0f));
-            auto body = this->ballNode->CreateComponent<RigidBody2D>();
+            auto node = this->scene->CreateChild("Ball");
+            node->SetPosition(Vector3(0.0f, windowHeight / 2.0f, 0.0f));
+            auto body = node->CreateComponent<RigidBody2D>();
             body->SetBodyType(BT_DYNAMIC);
             body->SetLinearVelocity(Vector2(0.0f, -velocity));
-            auto collisionCircle2d = this->ballNode->CreateComponent<CollisionCircle2D>();
-            collisionCircle2d->SetRadius(ballRadius);
-            collisionCircle2d->SetRestitution(ballRestitution);
+            auto shape = node->CreateComponent<CollisionCircle2D>();
+            shape->SetDensity(1.0);
+            shape->SetFriction(1.0f);
+            shape->SetRadius(ballRadius);
+            shape->SetRestitution(1.0);
         }
     }
     void Stop() {}
 private:
     SharedPtr<Scene> scene;
-    Node *ballNode, *groundNode;
     uint64_t steps;
     void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
         using namespace KeyDown;

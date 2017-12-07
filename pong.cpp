@@ -135,8 +135,6 @@ public:
             shape->SetSize(Vector2(playerLength, wallWidth));
         }
 
-
-        // Ball
         {
             this->ballNode = this->scene->CreateChild("Ball");
             this->ballNode->SetPosition(Vector3(this->windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));

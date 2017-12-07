@@ -41,7 +41,7 @@ public:
         engineParameters_[EP_WINDOW_WIDTH] = 512;
     }
     void Start() {
-        // TODO: left ball does not bounce if 1.0f. See: velocity_stop.cpp
+        // 1.0f does not bounce back as explained in velocity_stop.cpp
         auto windowWidth = 10.0f;
         auto windowHeight = windowWidth;
         auto groundWidth = windowWidth;
@@ -57,27 +57,26 @@ public:
         SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Main, HandleUpdate));
 
         // Scene
-        this->scene = new Scene(this->context_);
-        this->scene->CreateComponent<Octree>();
-        this->scene->CreateComponent<DebugRenderer>();
-        this->scene->CreateComponent<PhysicsWorld2D>();
-        auto physicsWorld = scene->GetComponent<PhysicsWorld2D>();
+        auto scene = new Scene(this->context_);
+        scene->CreateComponent<Octree>();
+        scene->CreateComponent<DebugRenderer>();
+        physicsWorld = scene->CreateComponent<PhysicsWorld2D>();
         physicsWorld->SetGravity(Vector2(0.0f, -windowWidth));
 
         // Graphics
-        auto cameraNode = this->scene->CreateChild("Camera");
+        auto cameraNode = scene->CreateChild("Camera");
         cameraNode->SetPosition(Vector3(0.0f, windowHeight / 2.0, -1.0f));
         auto camera = cameraNode->CreateComponent<Camera>();
         camera->SetOrthographic(true);
         camera->SetOrthoSize(windowWidth);
         auto renderer = GetSubsystem<Renderer>();
-        SharedPtr<Viewport> viewport(new Viewport(context_, this->scene, cameraNode->GetComponent<Camera>()));
+        SharedPtr<Viewport> viewport(new Viewport(context_, scene, cameraNode->GetComponent<Camera>()));
         renderer->SetViewport(0, viewport);
 
         // Ground
         {
             auto& node = this->groundNode;
-            node = this->scene->CreateChild("Ground");
+            node = scene->CreateChild("Ground");
             node->SetPosition(Vector3(0.0f, groundHeight / 2.0f, 0.0f));
             node->CreateComponent<RigidBody2D>();
             auto shape = node->CreateComponent<CollisionBox2D>();
@@ -89,7 +88,7 @@ public:
 
         // Left ball
         {
-            this->leftBallNode = this->scene->CreateChild("LeftBall");
+            this->leftBallNode = scene->CreateChild("LeftBall");
             this->leftBallNode->SetPosition(Vector3(-windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
             auto body = this->leftBallNode->CreateComponent<RigidBody2D>();
             body->SetBodyType(BT_DYNAMIC);
@@ -110,8 +109,8 @@ public:
     }
     void Stop() {}
 private:
-    SharedPtr<Scene> scene;
     Node *leftBallNode, *groundNode, *rightBallNode;
+    PhysicsWorld2D *physicsWorld;
     /// Mostly to see if the simulation is deterministic.
     uint64_t steps;
     void HandleUpdate(StringHash /*eventType*/, VariantMap& eventData) {
@@ -167,8 +166,7 @@ private:
         std::cout << std::endl;
     }
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
-        auto physicsWorld = this->scene->GetComponent<PhysicsWorld2D>();
-        physicsWorld->DrawDebugGeometry();
+        this->physicsWorld->DrawDebugGeometry();
     }
 };
 
