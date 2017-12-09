@@ -1,5 +1,5 @@
 /*
-Single player pong.
+Single player pong-like game.
 */
 
 #include <iostream>
@@ -45,128 +45,137 @@ public:
         engineParameters_[EP_WINDOW_HEIGHT] = 512;
         engineParameters_[EP_WINDOW_WIDTH] = 512;
     }
-    void Start() {
-        auto windowHeight = this->windowWidth;
-        auto wallLength = this->windowWidth;
-        auto wallWidth = this->windowWidth / 20.0f;
-        auto ballRadius = this->windowWidth / 20.0f;
-        auto ballRestitution = 1.0f;
-        auto playerLength = windowHeight / 4.0f;
-        this->score = 0;
-        this->steps = 0;
-        this->input = this->GetSubsystem<Input>();
+    void Start() override {
+        if (this->scene) {
+            this->scene->Clear();
+        } else {
+            this->scene = new Scene(this->context_);
+            this->input = this->GetSubsystem<Input>();
 
-        // Events
-        SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
-        SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Main, HandlePhysicsBeginContact2D));
-        SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Main, HandlePostRenderUpdate));
-        SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Main, HandleUpdate));
+            // Events
+            SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
+            SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Main, HandlePhysicsBeginContact2D));
+            SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Main, HandlePostRenderUpdate));
+            SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Main, HandleUpdate));
+
+            // Score
+            this->text = this->GetSubsystem<UI>()->GetRoot()->CreateChild<Text>();
+            this->text->SetFont(this->GetSubsystem<ResourceCache>()->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
+            this->text->SetHorizontalAlignment(HA_CENTER);
+            this->text->SetVerticalAlignment(VA_CENTER);
+        }
+
+        // Application state.
+        this->score = 0;
+        this->text->SetText(std::to_string(this->score).c_str());
+        this->steps = 0;
 
         // Scene
-        this->scene = new Scene(this->context_);
-        this->scene->CreateComponent<Octree>();
-        this->scene->CreateComponent<DebugRenderer>();
-        this->scene->CreateComponent<PhysicsWorld2D>();
-        auto physicsWorld = scene->GetComponent<PhysicsWorld2D>();
-        physicsWorld->SetGravity(Vector2(0.0f, 0.0f));
-        this->physicsWorld = this->scene->GetComponent<PhysicsWorld2D>();
-
-        // Graphics
-        auto cameraNode = this->scene->CreateChild("Camera");
-        cameraNode->SetPosition(Vector3(windowWidth / 2.0f, windowHeight / 2.0f, -1.0f));
-        auto camera = cameraNode->CreateComponent<Camera>();
-        camera->SetOrthographic(true);
-        camera->SetOrthoSize(windowWidth);
-        auto renderer = GetSubsystem<Renderer>();
-        SharedPtr<Viewport> viewport(new Viewport(context_, this->scene, cameraNode->GetComponent<Camera>()));
-        renderer->SetViewport(0, viewport);
-
-        // Score
-        ResourceCache *cache = this->GetSubsystem<ResourceCache>();
-        auto ui = this->GetSubsystem<UI>();
-        this->text = ui->GetRoot()->CreateChild<Text>();
-        this->text->SetText(std::to_string(this->score).c_str());
-        this->text->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
-        this->text->SetHorizontalAlignment(HA_CENTER);
-        this->text->SetVerticalAlignment(VA_CENTER);
-
-        Node *wallNode;
-        RigidBody2D *wallBody;
         {
-            wallNode = this->scene->CreateChild("BottomWall");
-            wallNode->SetPosition(Vector3(this->windowWidth / 2.0, wallWidth / 2.0f, 0.0f));
-            wallBody = wallNode->CreateComponent<RigidBody2D>();
-            auto box = wallNode->CreateComponent<CollisionBox2D>();
-            box->SetSize(Vector2(wallLength, wallWidth));
-            box->SetRestitution(0.0);
-        }
+            this->scene->CreateComponent<Octree>();
+            this->scene->CreateComponent<DebugRenderer>();
+            this->scene->CreateComponent<PhysicsWorld2D>();
+            this->physicsWorld = this->scene->GetComponent<PhysicsWorld2D>();
+            this->physicsWorld->SetGravity(Vector2(0.0f, 0.0f));
 
-        {
-            auto node = wallNode->Clone();
-            node->SetName("TopWall");
-            node->SetPosition(Vector3(this->windowWidth / 2.0f, windowHeight - (wallWidth / 2.0f), 0.0f));
-        }
+            // Graphics
+            auto cameraNode = this->scene->CreateChild("Camera");
+            cameraNode->SetPosition(Vector3(windowWidth / 2.0f, windowHeight / 2.0f, -1.0f));
+            auto camera = cameraNode->CreateComponent<Camera>();
+            camera->SetOrthographic(true);
+            camera->SetOrthoSize(windowWidth);
+            auto renderer = GetSubsystem<Renderer>();
+            SharedPtr<Viewport> viewport(new Viewport(context_, this->scene, cameraNode->GetComponent<Camera>()));
+            renderer->SetViewport(0, viewport);
 
-        {
-            auto& node = this->rightWallNode;
-            node = wallNode->Clone();
-            node->SetName("RightWall");
-            node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
-            node->SetPosition(Vector3(this->windowWidth - (wallWidth / 2.0f), windowHeight / 2.0f, 0.0f));
-        }
+            Node *wallNode;
+            RigidBody2D *wallBody;
+            {
+                wallNode = this->scene->CreateChild("BottomWall");
+                wallNode->SetPosition(Vector3(this->windowWidth / 2.0, wallWidth / 2.0f, 0.0f));
+                wallBody = wallNode->CreateComponent<RigidBody2D>();
+                auto box = wallNode->CreateComponent<CollisionBox2D>();
+                box->SetSize(Vector2(wallLength, wallWidth));
+                box->SetRestitution(0.0);
+            } {
+                auto node = wallNode->Clone();
+                node->SetName("TopWall");
+                node->SetPosition(Vector3(this->windowWidth / 2.0f, windowHeight - (wallWidth / 2.0f), 0.0f));
+            } {
+                auto& node = this->rightWallNode;
+                node = wallNode->Clone();
+                node->SetName("RightWall");
+                node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
+                node->SetPosition(Vector3(this->windowWidth - (wallWidth / 2.0f), windowHeight / 2.0f, 0.0f));
+            } {
+                auto& node = this->leftWallNode;
+                node = wallNode->Clone();
+                node->SetName("LeftWall");
+                node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
+                node->SetPosition(Vector3(-wallWidth / 2.0f, windowHeight / 2.0f, 0.0f));
+            } {
+                auto& node = this->playerNode;
+                node = wallNode->Clone();
+                node->SetName("Player");
+                node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
+                node->SetPosition(Vector3(wallWidth, windowHeight / 2.0f, 0.0f));
+                auto body = node->GetComponent<RigidBody2D>();
+                body->SetBodyType(BT_DYNAMIC);
+                body->SetFixedRotation(true);
+                body->SetLinearDamping(4.0);
+                auto constraint = node->CreateComponent<ConstraintPrismatic2D>();
+                constraint->SetOtherBody(wallBody);
+                constraint->SetAxis(Vector2(0.0f, 1.0f));
+                constraint->SetAnchor(Vector2(this->windowWidth / 2.0f, 0.0f));
+                constraint->SetCollideConnected(true);
 
-        {
-            auto& node = this->leftWallNode;
-            node = wallNode->Clone();
-            node->SetName("LeftWall");
-            node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
-            node->SetPosition(Vector3(-wallWidth / 2.0f, windowHeight / 2.0f, 0.0f));
-        }
+                //ConstraintPrismatic2D* constraintPrismatic = boxPrismaticNode->CreateComponent<ConstraintPrismatic2D>();
+                //constraintPrismatic->SetOtherBody(ballPrismaticNode->GetComponent<RigidBody2D>()); // Constrain ball to box
+                //constraintPrismatic->SetAxis(Vector2(1.0f, 1.0f)); // Slide from [0,0] to [1,1]
+                //constraintPrismatic->SetAnchor(Vector2(4.0f, 2.0f));
+                //constraintPrismatic->SetLowerTranslation(-1.0f);
+                //constraintPrismatic->SetUpperTranslation(0.5f);
+                //constraintPrismatic->SetEnableLimit(true);
+                //constraintPrismatic->SetMaxMotorForce(1.0f);
+                //constraintPrismatic->SetMotorSpeed(0.0f);
 
-        {
-            auto& node = this->playerNode;
-            node = wallNode->Clone();
-            node->SetName("Player");
-            node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
-            node->SetPosition(Vector3(wallWidth / 2.0f, windowHeight / 2.0f, 0.0f));
-            auto body = node->GetComponent<RigidBody2D>();
-            body->SetBodyType(BT_DYNAMIC);
-            body->SetFixedRotation(true);
-            body->SetLinearDamping(4.0);
-            //auto constraint = node->CreateComponent<ConstraintPrismatic2D>();
-            //constraint->SetOtherBody(wallBody);
-            //constraint->SetAxis(Vector2(0.0f, 1.0f));
-            auto shape = node->GetComponent<CollisionBox2D>();
-            shape->SetDensity(this->playerDensity);
-            shape->SetFriction(1.0f);
-            shape->SetRestitution(0.0);
-            shape->SetSize(Vector2(playerLength, wallWidth));
-        }
-
-        {
-            this->ballNode = this->scene->CreateChild("Ball");
-            this->ballNode->SetPosition(Vector3(this->windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
-            auto body = this->ballNode->CreateComponent<RigidBody2D>();
-            body->SetBodyType(BT_DYNAMIC);
-            body->SetLinearVelocity(Vector2(2 * this->windowWidth, -windowHeight / 2.0f));
-            auto shape = this->ballNode->CreateComponent<CollisionCircle2D>();
-            shape->SetDensity(1.0f);
-            shape->SetFriction(1.0f);
-            shape->SetRadius(ballRadius);
-            shape->SetRestitution(ballRestitution);
+                auto shape = node->GetComponent<CollisionBox2D>();
+                shape->SetDensity(this->playerDensity);
+                shape->SetFriction(1.0f);
+                shape->SetRestitution(0.0);
+                shape->SetSize(Vector2(playerLength, wallWidth));
+            } {
+                this->ballNode = this->scene->CreateChild("Ball");
+                this->ballNode->SetPosition(Vector3(this->windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
+                auto body = this->ballNode->CreateComponent<RigidBody2D>();
+                body->SetBodyType(BT_DYNAMIC);
+                body->SetLinearVelocity(Vector2(2 * this->windowWidth, -windowHeight / 2.0f));
+                auto shape = this->ballNode->CreateComponent<CollisionCircle2D>();
+                shape->SetDensity(1.0f);
+                shape->SetFriction(0.0f);
+                shape->SetRadius(ballRadius);
+                shape->SetRestitution(ballRestitution);
+            }
         }
     }
-    void Stop() {}
+    void Stop() override {}
 private:
-    SharedPtr<Scene> scene;
-    Node *ballNode, *playerNode, *leftWallNode, *rightWallNode;
-    Text *text;
     Input *input;
+    Node *ballNode, *playerNode, *leftWallNode, *rightWallNode;
     PhysicsWorld2D *physicsWorld;
+    SharedPtr<Scene> scene;
+    Text *text;
     uint64_t score, steps;
-    /// Larger means that the controls will react faster.
+
     static constexpr float playerDensity = 10.0f;
     static constexpr float windowWidth = 1.0f;
+    static constexpr float windowHeight = windowWidth;
+    static constexpr float wallLength = windowWidth;
+    static constexpr float wallWidth = windowWidth / 20.0f;
+    static constexpr float ballRadius = windowWidth / 20.0f;
+    static constexpr float ballRestitution = 1.0f;
+    static constexpr float playerLength = windowHeight / 4.0f;
+
     void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
         using namespace KeyDown;
         int key = eventData[P_KEY].GetInt();
@@ -176,6 +185,7 @@ private:
             this->Start();
         }
     }
+
     void HandlePhysicsBeginContact2D(StringHash eventType, VariantMap& eventData) {
         using namespace PhysicsBeginContact2D;
         auto nodea = static_cast<Node*>(eventData[P_NODEA].GetPtr());
@@ -196,9 +206,8 @@ private:
             this->score = 0;
         }
         this->text->SetText(std::to_string(this->score).c_str());
-        File saveFile(this->context_, GetSubsystem<FileSystem>()->GetProgramDir() + String(this->steps) + ".xml", FILE_WRITE);
-        this->scene->SaveXML(saveFile);
     }
+
     void HandleUpdate(StringHash eventType, VariantMap& eventData) {
         using namespace Update;
         auto timeStep = eventData[P_TIMESTEP].GetFloat();
@@ -215,9 +224,11 @@ private:
         }
         this->steps++;
     }
+
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
         this->physicsWorld->DrawDebugGeometry();
     }
+
 };
 
 URHO3D_DEFINE_APPLICATION_MAIN(Main);

@@ -51,7 +51,6 @@ public:
         auto ballRadius = windowWidth / 20.0f;
         auto ballRestitution = 0.8f;
         this->steps = 0;
-        this->saveXml = false;
 
         // Events
         SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
@@ -118,24 +117,24 @@ private:
 
     /// Mostly to see if the simulation is deterministic.
     uint64_t steps;
-    bool saveXml;
     void HandleUpdate(StringHash /*eventType*/, VariantMap& eventData) {
         this->steps++;
-        // Good for debugging. Lots of output of course.
-        if (this->saveXml) {
-            File saveFile(this->context_, GetSubsystem<FileSystem>()->GetProgramDir() + String(this->steps) + ".xml", FILE_WRITE);
-            this->scene->SaveXML(saveFile);
-        }
     }
     void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
         using namespace KeyDown;
         int key = eventData[P_KEY].GetInt();
         if (key == KEY_ESCAPE) {
             engine_->Exit();
-        } else if (key == KEY_F2) {
-            this->saveXml = !this->saveXml;
         } else if (key == KEY_R) {
+            this->scene->Clear();
             this->Start();
+        } else if (key == KEY_F5) {
+            File saveFile(this->context_, GetSubsystem<FileSystem>()->GetProgramDir() + "save.xml", FILE_WRITE);
+            this->scene->SaveXML(saveFile);
+        } else if (key == KEY_F7) {
+            // TODO does not work, things disappear from screen. Why?
+            File saveFile(this->context_, GetSubsystem<FileSystem>()->GetProgramDir() + "save.xml", FILE_READ);
+            this->scene->LoadXML(saveFile);
         }
     }
     void HandlePhysicsBeginContact2D(StringHash eventType, VariantMap& eventData) {
