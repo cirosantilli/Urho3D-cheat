@@ -14,6 +14,8 @@ Single player pong.
 #include <Urho3D/Graphics/Graphics.h>
 #include <Urho3D/Graphics/Octree.h>
 #include <Urho3D/Graphics/Renderer.h>
+#include <Urho3D/IO/File.h>
+#include <Urho3D/IO/FileSystem.h>
 #include <Urho3D/IO/MemoryBuffer.h>
 #include <Urho3D/Input/Input.h>
 #include <Urho3D/Input/InputEvents.h>
@@ -26,6 +28,7 @@ Single player pong.
 #include <Urho3D/UI/UI.h>
 #include <Urho3D/Urho2D/CollisionBox2D.h>
 #include <Urho3D/Urho2D/CollisionCircle2D.h>
+#include <Urho3D/Urho2D/ConstraintPrismatic2D.h>
 #include <Urho3D/Urho2D/PhysicsEvents2D.h>
 #include <Urho3D/Urho2D/PhysicsWorld2D.h>
 #include <Urho3D/Urho2D/RigidBody2D.h>
@@ -42,15 +45,15 @@ public:
         engineParameters_[EP_WINDOW_HEIGHT] = 512;
         engineParameters_[EP_WINDOW_WIDTH] = 512;
     }
-    float windowWidth = 1.0f;
     void Start() {
-        auto windowHeight =this->windowWidth;
-        auto wallLength =this->windowWidth;
-        auto wallWidth =this->windowWidth / 20.0f;
-        auto ballRadius =this->windowWidth / 20.0f;
+        auto windowHeight = this->windowWidth;
+        auto wallLength = this->windowWidth;
+        auto wallWidth = this->windowWidth / 20.0f;
+        auto ballRadius = this->windowWidth / 20.0f;
         auto ballRestitution = 1.0f;
         auto playerLength = windowHeight / 4.0f;
         this->score = 0;
+        this->steps = 0;
         this->input = this->GetSubsystem<Input>();
 
         // Events
@@ -79,8 +82,8 @@ public:
         renderer->SetViewport(0, viewport);
 
         // Score
-        ResourceCache* cache = GetSubsystem<ResourceCache>();
-        auto ui = GetSubsystem<UI>();
+        ResourceCache *cache = this->GetSubsystem<ResourceCache>();
+        auto ui = this->GetSubsystem<UI>();
         this->text = ui->GetRoot()->CreateChild<Text>();
         this->text->SetText(std::to_string(this->score).c_str());
         this->text->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
@@ -88,13 +91,14 @@ public:
         this->text->SetVerticalAlignment(VA_CENTER);
 
         Node *wallNode;
+        RigidBody2D *wallBody;
         {
             wallNode = this->scene->CreateChild("BottomWall");
             wallNode->SetPosition(Vector3(this->windowWidth / 2.0, wallWidth / 2.0f, 0.0f));
-            wallNode->CreateComponent<RigidBody2D>();
-            auto collisionBox2d = wallNode->CreateComponent<CollisionBox2D>();
-            collisionBox2d->SetSize(Vector2(wallLength, wallWidth));
-            collisionBox2d->SetRestitution(0.0);
+            wallBody = wallNode->CreateComponent<RigidBody2D>();
+            auto box = wallNode->CreateComponent<CollisionBox2D>();
+            box->SetSize(Vector2(wallLength, wallWidth));
+            box->SetRestitution(0.0);
         }
 
         {
@@ -128,10 +132,14 @@ public:
             auto body = node->GetComponent<RigidBody2D>();
             body->SetBodyType(BT_DYNAMIC);
             body->SetFixedRotation(true);
+            body->SetLinearDamping(4.0);
+            //auto constraint = node->CreateComponent<ConstraintPrismatic2D>();
+            //constraint->SetOtherBody(wallBody);
+            //constraint->SetAxis(Vector2(0.0f, 1.0f));
             auto shape = node->GetComponent<CollisionBox2D>();
-            shape->SetDensity(1.0f);
+            shape->SetDensity(this->playerDensity);
             shape->SetFriction(1.0f);
-            shape->SetRestitution(1.0);
+            shape->SetRestitution(0.0);
             shape->SetSize(Vector2(playerLength, wallWidth));
         }
 
@@ -155,12 +163,17 @@ private:
     Text *text;
     Input *input;
     PhysicsWorld2D *physicsWorld;
-    uint64_t score;
+    uint64_t score, steps;
+    /// Larger means that the controls will react faster.
+    static constexpr float playerDensity = 10.0f;
+    static constexpr float windowWidth = 1.0f;
     void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
         using namespace KeyDown;
         int key = eventData[P_KEY].GetInt();
         if (key == KEY_ESCAPE) {
             engine_->Exit();
+        } else if (key == KEY_R) {
+            this->Start();
         }
     }
     void HandlePhysicsBeginContact2D(StringHash eventType, VariantMap& eventData) {
@@ -183,11 +196,13 @@ private:
             this->score = 0;
         }
         this->text->SetText(std::to_string(this->score).c_str());
+        File saveFile(this->context_, GetSubsystem<FileSystem>()->GetProgramDir() + String(this->steps) + ".xml", FILE_WRITE);
+        this->scene->SaveXML(saveFile);
     }
     void HandleUpdate(StringHash eventType, VariantMap& eventData) {
         using namespace Update;
         auto timeStep = eventData[P_TIMESTEP].GetFloat();
-        auto impuseMagnitude = (this->windowWidth * 2.0f) * timeStep;
+        auto impuseMagnitude = this->windowWidth * this->playerDensity * timeStep * 10.0;
         auto body = this->playerNode->GetComponent<RigidBody2D>();
         if (this->input->GetKeyDown(KEY_DOWN)) {
             body->ApplyForceToCenter(Vector2(0.0f, -impuseMagnitude), true);
@@ -198,6 +213,7 @@ private:
         } else if (input->GetKeyDown(KEY_LEFT)) {
             body->ApplyForceToCenter(Vector2(-impuseMagnitude, 0.0f), true);
         }
+        this->steps++;
     }
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
         this->physicsWorld->DrawDebugGeometry();

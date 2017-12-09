@@ -18,6 +18,8 @@ https://stackoverflow.com/questions/47505166/how-to-detect-collisions-in-urho3d-
 #include <Urho3D/Graphics/Renderer.h>
 #include <Urho3D/Input/Input.h>
 #include <Urho3D/Input/InputEvents.h>
+#include <Urho3D/IO/File.h>
+#include <Urho3D/IO/FileSystem.h>
 #include <Urho3D/IO/MemoryBuffer.h>
 #include <Urho3D/Scene/Node.h>
 #include <Urho3D/Scene/Scene.h>
@@ -49,6 +51,7 @@ public:
         auto ballRadius = windowWidth / 20.0f;
         auto ballRestitution = 0.8f;
         this->steps = 0;
+        this->saveXml = false;
 
         // Events
         SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
@@ -57,26 +60,26 @@ public:
         SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Main, HandleUpdate));
 
         // Scene
-        auto scene = new Scene(this->context_);
-        scene->CreateComponent<Octree>();
-        scene->CreateComponent<DebugRenderer>();
-        physicsWorld = scene->CreateComponent<PhysicsWorld2D>();
+        this->scene = new Scene(this->context_);
+        this->scene->CreateComponent<Octree>();
+        this->scene->CreateComponent<DebugRenderer>();
+        physicsWorld = this->scene->CreateComponent<PhysicsWorld2D>();
         physicsWorld->SetGravity(Vector2(0.0f, -windowWidth));
 
         // Graphics
-        auto cameraNode = scene->CreateChild("Camera");
+        auto cameraNode = this->scene->CreateChild("Camera");
         cameraNode->SetPosition(Vector3(0.0f, windowHeight / 2.0, -1.0f));
         auto camera = cameraNode->CreateComponent<Camera>();
         camera->SetOrthographic(true);
         camera->SetOrthoSize(windowWidth);
         auto renderer = GetSubsystem<Renderer>();
-        SharedPtr<Viewport> viewport(new Viewport(context_, scene, cameraNode->GetComponent<Camera>()));
+        SharedPtr<Viewport> viewport(new Viewport(context_, this->scene, cameraNode->GetComponent<Camera>()));
         renderer->SetViewport(0, viewport);
 
         // Ground
         {
             auto& node = this->groundNode;
-            node = scene->CreateChild("Ground");
+            node = this->scene->CreateChild("Ground");
             node->SetPosition(Vector3(0.0f, groundHeight / 2.0f, 0.0f));
             node->CreateComponent<RigidBody2D>();
             auto shape = node->CreateComponent<CollisionBox2D>();
@@ -88,7 +91,7 @@ public:
 
         // Left ball
         {
-            this->leftBallNode = scene->CreateChild("LeftBall");
+            this->leftBallNode = this->scene->CreateChild("LeftBall");
             this->leftBallNode->SetPosition(Vector3(-windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
             auto body = this->leftBallNode->CreateComponent<RigidBody2D>();
             body->SetBodyType(BT_DYNAMIC);
@@ -111,16 +114,28 @@ public:
 private:
     Node *leftBallNode, *groundNode, *rightBallNode;
     PhysicsWorld2D *physicsWorld;
+    SharedPtr<Scene> scene;
+
     /// Mostly to see if the simulation is deterministic.
     uint64_t steps;
+    bool saveXml;
     void HandleUpdate(StringHash /*eventType*/, VariantMap& eventData) {
         this->steps++;
+        // Good for debugging. Lots of output of course.
+        if (this->saveXml) {
+            File saveFile(this->context_, GetSubsystem<FileSystem>()->GetProgramDir() + String(this->steps) + ".xml", FILE_WRITE);
+            this->scene->SaveXML(saveFile);
+        }
     }
     void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
         using namespace KeyDown;
         int key = eventData[P_KEY].GetInt();
         if (key == KEY_ESCAPE) {
             engine_->Exit();
+        } else if (key == KEY_F2) {
+            this->saveXml = !this->saveXml;
+        } else if (key == KEY_R) {
+            this->Start();
         }
     }
     void HandlePhysicsBeginContact2D(StringHash eventType, VariantMap& eventData) {
