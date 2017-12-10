@@ -51,7 +51,7 @@ public:
     }
 private:
     static constexpr float groundWidth = windowWidth;
-    static constexpr float groundHeight =windowWidth / 10.0f;
+    static constexpr float groundHeight = windowWidth / 10.0f;
     static constexpr float ballRadius = windowWidth / 20.0f;
 
     Node *leftBallNode, *groundNode, *rightBallNode;

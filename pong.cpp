@@ -3,7 +3,6 @@ Single player pong-like game, more like squash.
 
 TODO:
 
-- the player does not fully touch the ground, there is a gap.
 - make player edges rounded. Probably attach two colision circles to the edgest of the player.
 - ball gets too fast when player hits it while moving up / down. How to prevent this?
 - ball speed can get too vertical, and it takes forever to hit wall and come back
@@ -28,7 +27,7 @@ public:
             RigidBody2D *wallBody;
             {
                 bottomWallNode = this->scene->CreateChild("BottomWall");
-                bottomWallNode->SetPosition(Vector3(this->windowWidth / 2.0, wallWidth / 2.0f, 0.0f));
+                bottomWallNode->SetPosition(Vector2(this->windowWidth / 2.0, wallWidth / 2.0f));
                 wallBody = bottomWallNode->CreateComponent<RigidBody2D>();
                 auto box = bottomWallNode->CreateComponent<CollisionBox2D>();
                 box->SetSize(Vector2(wallLength, wallWidth));
@@ -36,19 +35,19 @@ public:
             } {
                 auto node = bottomWallNode->Clone();
                 node->SetName("TopWall");
-                node->SetPosition(Vector3(this->windowWidth / 2.0f, windowHeight - (wallWidth / 2.0f), 0.0f));
+                node->SetPosition(Vector2(this->windowWidth / 2.0f, windowHeight - (wallWidth / 2.0f)));
             } {
                 auto& node = this->rightWallNode;
                 node = bottomWallNode->Clone();
                 node->SetName("RightWall");
                 node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
-                node->SetPosition(Vector3(this->windowWidth - (wallWidth / 2.0f), windowHeight / 2.0f, 0.0f));
+                node->SetPosition(Vector2(this->windowWidth - (wallWidth / 2.0f), windowHeight / 2.0f));
             } {
                 auto& node = this->leftWallNode;
                 node = bottomWallNode->Clone();
                 node->SetName("LeftWall");
                 node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
-                node->SetPosition(Vector3(-wallWidth / 2.0f, windowHeight / 2.0f, 0.0f));
+                node->SetPosition(Vector2(-wallWidth / 2.0f, windowHeight / 2.0f));
             } {
                 auto& node = this->playerNode;
                 node = bottomWallNode->Clone();
@@ -56,28 +55,26 @@ public:
                 node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
                 // TODO The more elegant value of x is wallWidth / 2.0. But then we get stuck
                 // to the left wall when the ball hits the player. Use collision filtering.
-                node->SetPosition(Vector3(wallWidth, windowHeight / 2.0f, 0.0f));
+                node->SetPosition(Vector2(wallWidth, windowHeight / 2.0f));
 
                 auto body = node->GetComponent<RigidBody2D>();
                 body->SetBodyType(BT_DYNAMIC);
                 body->SetFixedRotation(true);
-                body->SetLinearDamping(4.0);
+                body->SetLinearDamping(5.0);
+
+                // TODO can't collide with ground after setting prismatic constraint,
+                // despite `constraint->SetCollideConnected(true)`. Using a separate body as workaround for now,
+                // will ask question later.
+                auto bottomWallCloneNode = bottomWallNode->Clone();
+                bottomWallCloneNode->SetName("Player");
+                bottomWallCloneNode->SetPosition(Vector2(windowHeight / 2.0f, -windowWidth));
 
                 auto constraint = node->CreateComponent<ConstraintPrismatic2D>();
-                constraint->SetOtherBody(wallBody);
+                constraint->SetOtherBody(bottomWallCloneNode->GetComponent<RigidBody2D>());
+                //constraint->SetOtherBody(wallBody);
                 constraint->SetAxis(Vector2(0.0f, 1.0f));
                 constraint->SetAnchor(Vector2(this->windowWidth / 2.0f, 0.0f));
                 constraint->SetCollideConnected(true);
-
-                //ConstraintPrismatic2D* constraintPrismatic = boxPrismaticNode->CreateComponent<ConstraintPrismatic2D>();
-                //constraintPrismatic->SetOtherBody(ballPrismaticNode->GetComponent<RigidBody2D>()); // Constrain ball to box
-                //constraintPrismatic->SetAxis(Vector2(1.0f, 1.0f)); // Slide from [0,0] to [1,1]
-                //constraintPrismatic->SetAnchor(Vector2(4.0f, 2.0f));
-                //constraintPrismatic->SetLowerTranslation(-1.0f);
-                //constraintPrismatic->SetUpperTranslation(0.5f);
-                //constraintPrismatic->SetEnableLimit(true);
-                //constraintPrismatic->SetMaxMotorForce(1.0f);
-                //constraintPrismatic->SetMotorSpeed(0.0f);
 
                 auto shape = node->GetComponent<CollisionBox2D>();
                 shape->SetDensity(this->playerDensity);
@@ -86,7 +83,7 @@ public:
                 shape->SetSize(Vector2(playerLength, wallWidth));
             } {
                 this->ballNode = this->scene->CreateChild("Ball");
-                this->ballNode->SetPosition(Vector3(this->windowWidth / 4.0f, windowHeight / 2.0f, 0.0f));
+                this->ballNode->SetPosition(Vector2(this->windowWidth / 4.0f, windowHeight / 2.0f));
                 auto body = this->ballNode->CreateComponent<RigidBody2D>();
                 body->SetBodyType(BT_DYNAMIC);
                 body->SetLinearVelocity(Vector2(2 * this->windowWidth, -windowHeight / 2.0f));
@@ -143,15 +140,13 @@ private:
 
     virtual void HandleUpdateExtra(StringHash eventType, VariantMap& eventData) override {
         using namespace Update;
-        auto timeStep = eventData[P_TIMESTEP].GetFloat();
-        std::cout << timeStep << std::endl;
-        auto impuseMagnitude = this->windowWidth * this->playerDensity * timeStep * 10.0;
+        auto forceMagnitude = this->windowWidth * this->playerDensity * 10.0f;
         auto body = this->playerNode->GetComponent<RigidBody2D>();
         if (this->input->GetKeyDown(KEY_S)) {
-            body->ApplyForceToCenter(Vector2::DOWN * impuseMagnitude, true);
+            body->ApplyForceToCenter(Vector2::DOWN * forceMagnitude, true);
         }
         if (this->input->GetKeyDown(KEY_W)) {
-            body->ApplyForceToCenter(Vector2::UP * impuseMagnitude, true);
+            body->ApplyForceToCenter(Vector2::UP * forceMagnitude, true);
         }
     }
 };

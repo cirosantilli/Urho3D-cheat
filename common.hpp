@@ -74,6 +74,11 @@ public:
         this->scene->CreateComponent<DebugRenderer>();
         this->physicsWorld = this->scene->CreateComponent<PhysicsWorld2D>();
         this->physicsWorld->SetGravity(Vector2(0.0f, 0.0f));
+        this->physicsWorld->SetDrawAabb(false);
+        this->physicsWorld->SetDrawCenterOfMass(true);
+        this->physicsWorld->SetDrawJoint(true);
+        this->physicsWorld->SetDrawPair(true);
+        this->physicsWorld->SetDrawShape(true);
 
         // Camera
         this->cameraNode = this->scene->CreateChild("Camera");
@@ -102,6 +107,9 @@ protected:
 
     /// Everything in the scene should be proportional to this number,
     /// so that we can set it to anything we want without changing anything.
+    ///
+    /// Our perfect symmetry is broken however by evil things like Box2D thresholds
+    /// as explained in velocity_stop.cpp, going close to 1.0f is a bad idea.
     static constexpr float windowWidth = 10.0f;
     static constexpr float windowHeight = windowWidth;
     static constexpr float cameraSpeed = 1.0;
