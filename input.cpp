@@ -3,6 +3,8 @@ Expected outcome:
 
 - press ESC: quit
 - release space: stdout shows a message
+
+HandleKeyDown and HandleKeyUp are mostly useless I think, Input->GetKeyDown is the more reliable method.
 */
 
 #include "common.hpp"

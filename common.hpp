@@ -13,6 +13,7 @@ Expected outcome:
 
 #include <Urho3D/Core/CoreEvents.h>
 #include <Urho3D/Core/Object.h>
+#include <Urho3D/Core/ProcessUtils.h>
 #include <Urho3D/Engine/Application.h>
 #include <Urho3D/Engine/Engine.h>
 #include <Urho3D/Engine/EngineDefs.h>
