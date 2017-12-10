@@ -1,7 +1,16 @@
 /*
-Single player pong-like game.
+Single player pong-like game, more like squash.
+
+TODO:
+
+- the player does not fully touch the ground, there is a gap.
+- make player edges rounded. Probably attach two colision circles to the edgest of the player.
+- ball gets too fast when player hits it while moving up / down. How to prevent this?
+- ball speed can get too vertical, and it takes forever to hit wall and come back
+- ball speed can get too horizontal, and then it becomes too trivial. We need some random / adversarial aspect to make it more interesting.
 */
 
+#include <cmath>
 #include <iostream>
 
 #include <Urho3D/Core/CoreEvents.h>
@@ -79,50 +88,54 @@ public:
             this->physicsWorld->SetGravity(Vector2(0.0f, 0.0f));
 
             // Graphics
-            auto cameraNode = this->scene->CreateChild("Camera");
-            cameraNode->SetPosition(Vector3(windowWidth / 2.0f, windowHeight / 2.0f, -1.0f));
-            auto camera = cameraNode->CreateComponent<Camera>();
-            camera->SetOrthographic(true);
-            camera->SetOrthoSize(windowWidth);
+            this->cameraNode = this->scene->CreateChild("Camera");
+            this->cameraNode->SetPosition(Vector3(windowWidth / 2.0f, windowHeight / 2.0f, -1.0f));
+            this->camera = this->cameraNode->CreateComponent<Camera>();
+            this->camera->SetOrthographic(true);
+            this->camera->SetOrthoSize(windowWidth);
             auto renderer = GetSubsystem<Renderer>();
-            SharedPtr<Viewport> viewport(new Viewport(context_, this->scene, cameraNode->GetComponent<Camera>()));
+            SharedPtr<Viewport> viewport(new Viewport(context_, this->scene, this->cameraNode->GetComponent<Camera>()));
             renderer->SetViewport(0, viewport);
 
-            Node *wallNode;
+            Node *bottomWallNode;
             RigidBody2D *wallBody;
             {
-                wallNode = this->scene->CreateChild("BottomWall");
-                wallNode->SetPosition(Vector3(this->windowWidth / 2.0, wallWidth / 2.0f, 0.0f));
-                wallBody = wallNode->CreateComponent<RigidBody2D>();
-                auto box = wallNode->CreateComponent<CollisionBox2D>();
+                bottomWallNode = this->scene->CreateChild("BottomWall");
+                bottomWallNode->SetPosition(Vector3(this->windowWidth / 2.0, wallWidth / 2.0f, 0.0f));
+                wallBody = bottomWallNode->CreateComponent<RigidBody2D>();
+                auto box = bottomWallNode->CreateComponent<CollisionBox2D>();
                 box->SetSize(Vector2(wallLength, wallWidth));
                 box->SetRestitution(0.0);
             } {
-                auto node = wallNode->Clone();
+                auto node = bottomWallNode->Clone();
                 node->SetName("TopWall");
                 node->SetPosition(Vector3(this->windowWidth / 2.0f, windowHeight - (wallWidth / 2.0f), 0.0f));
             } {
                 auto& node = this->rightWallNode;
-                node = wallNode->Clone();
+                node = bottomWallNode->Clone();
                 node->SetName("RightWall");
                 node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
                 node->SetPosition(Vector3(this->windowWidth - (wallWidth / 2.0f), windowHeight / 2.0f, 0.0f));
             } {
                 auto& node = this->leftWallNode;
-                node = wallNode->Clone();
+                node = bottomWallNode->Clone();
                 node->SetName("LeftWall");
                 node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
                 node->SetPosition(Vector3(-wallWidth / 2.0f, windowHeight / 2.0f, 0.0f));
             } {
                 auto& node = this->playerNode;
-                node = wallNode->Clone();
+                node = bottomWallNode->Clone();
                 node->SetName("Player");
                 node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
+                // TODO The more elegant value of x is wallWidth / 2.0. But then we get stuck
+                // to the left wall when the ball hits the player. Use collision filtering.
                 node->SetPosition(Vector3(wallWidth, windowHeight / 2.0f, 0.0f));
+
                 auto body = node->GetComponent<RigidBody2D>();
                 body->SetBodyType(BT_DYNAMIC);
                 body->SetFixedRotation(true);
                 body->SetLinearDamping(4.0);
+
                 auto constraint = node->CreateComponent<ConstraintPrismatic2D>();
                 constraint->SetOtherBody(wallBody);
                 constraint->SetAxis(Vector2(0.0f, 1.0f));
@@ -160,8 +173,9 @@ public:
     }
     void Stop() override {}
 private:
+    Camera *camera;
     Input *input;
-    Node *ballNode, *playerNode, *leftWallNode, *rightWallNode;
+    Node *ballNode, *cameraNode, *leftWallNode, *playerNode, *rightWallNode;
     PhysicsWorld2D *physicsWorld;
     SharedPtr<Scene> scene;
     Text *text;
@@ -175,6 +189,8 @@ private:
     static constexpr float ballRadius = windowWidth / 20.0f;
     static constexpr float ballRestitution = 1.0f;
     static constexpr float playerLength = windowHeight / 4.0f;
+    static constexpr float cameraSpeed = windowHeight;
+    static constexpr float cameraZoomSpeed = 0.5f;
 
     void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
         using namespace KeyDown;
@@ -214,13 +230,34 @@ private:
         auto impuseMagnitude = this->windowWidth * this->playerDensity * timeStep * 10.0;
         auto body = this->playerNode->GetComponent<RigidBody2D>();
         if (this->input->GetKeyDown(KEY_DOWN)) {
-            body->ApplyForceToCenter(Vector2(0.0f, -impuseMagnitude), true);
-        } else if (this->input->GetKeyDown(KEY_UP)) {
-            body->ApplyForceToCenter(Vector2(0.0f, impuseMagnitude), true);
-        } else if (this->input->GetKeyDown(KEY_RIGHT)) {
-            body->ApplyForceToCenter(Vector2(impuseMagnitude, 0.0f), true);
-        } else if (input->GetKeyDown(KEY_LEFT)) {
-            body->ApplyForceToCenter(Vector2(-impuseMagnitude, 0.0f), true);
+            body->ApplyForceToCenter(Vector2::DOWN * impuseMagnitude, true);
+        }
+        if (this->input->GetKeyDown(KEY_UP)) {
+            body->ApplyForceToCenter(Vector2::UP * impuseMagnitude, true);
+        }
+        if (this->input->GetKeyDown(KEY_RIGHT)) {
+            body->ApplyForceToCenter(Vector2::RIGHT * impuseMagnitude, true);
+        }
+        if (this->input->GetKeyDown(KEY_LEFT)) {
+            body->ApplyForceToCenter(Vector2::LEFT * impuseMagnitude, true);
+        }
+        if (this->input->GetKeyDown(KEY_S)) {
+            this->cameraNode->Translate(Vector2::DOWN * this->cameraSpeed * timeStep);
+        }
+        if (this->input->GetKeyDown(KEY_W)) {
+            this->cameraNode->Translate(Vector2::UP * this->cameraSpeed * timeStep);
+        }
+        if (this->input->GetKeyDown(KEY_D)) {
+            this->cameraNode->Translate(Vector2::RIGHT * this->cameraSpeed * timeStep);
+        }
+        if (this->input->GetKeyDown(KEY_A)) {
+            this->cameraNode->Translate(Vector2::LEFT * this->cameraSpeed * timeStep);
+        }
+        if (input->GetKeyDown(KEY_PAGEUP)) {
+            this->camera->SetZoom(this->camera->GetZoom() * 1.0f / std::pow(this->cameraZoomSpeed, timeStep));
+        }
+        if (input->GetKeyDown(KEY_PAGEDOWN)) {
+            this->camera->SetZoom(this->camera->GetZoom() * std::pow(this->cameraZoomSpeed, timeStep));
         }
         this->steps++;
     }
