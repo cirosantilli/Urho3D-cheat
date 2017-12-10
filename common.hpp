@@ -100,9 +100,11 @@ protected:
     SharedPtr<Scene> scene;
     uint64_t steps;
 
-    static constexpr float windowWidth = 1.0f;
+    /// Everything in the scene should be proportional to this number,
+    /// so that we can set it to anything we want without changing anything.
+    static constexpr float windowWidth = 10.0f;
     static constexpr float windowHeight = windowWidth;
-    static constexpr float cameraSpeed = windowWidth;
+    static constexpr float cameraSpeed = 1.0;
     static constexpr float cameraZoomSpeed = 0.5f;
 
     void HandlePhysicsBeginContact2D(StringHash eventType, VariantMap& eventData) {
@@ -115,8 +117,9 @@ protected:
     void HandleUpdate(StringHash eventType, VariantMap& eventData) {
         using namespace Update;
         auto timeStep = eventData[P_TIMESTEP].GetFloat();
+        auto cameraStep = this->camera->GetOrthoSize() * (1.0f / this->camera->GetZoom()) * this->cameraSpeed * timeStep;
         if (this->input->GetKeyDown(KEY_DOWN)) {
-            this->cameraNode->Translate(Vector2::DOWN * this->cameraSpeed * timeStep);
+            this->cameraNode->Translate(Vector2::DOWN * cameraStep);
         }
         if (this->input->GetKeyDown(KEY_ESCAPE)) {
             engine_->Exit();
@@ -126,7 +129,7 @@ protected:
             this->scene->SaveXML(saveFile);
         }
         if (this->input->GetKeyDown(KEY_LEFT)) {
-            this->cameraNode->Translate(Vector2::LEFT * this->cameraSpeed * timeStep);
+            this->cameraNode->Translate(Vector2::LEFT * cameraStep);
         }
         if (input->GetKeyDown(KEY_PAGEUP)) {
             this->camera->SetZoom(this->camera->GetZoom() * 1.0f / std::pow(this->cameraZoomSpeed, timeStep));
@@ -139,10 +142,10 @@ protected:
             this->Start();
         }
         if (this->input->GetKeyDown(KEY_RIGHT)) {
-            this->cameraNode->Translate(Vector2::RIGHT * this->cameraSpeed * timeStep);
+            this->cameraNode->Translate(Vector2::RIGHT * cameraStep);
         }
         if (this->input->GetKeyDown(KEY_UP)) {
-            this->cameraNode->Translate(Vector2::UP * this->cameraSpeed * timeStep);
+            this->cameraNode->Translate(Vector2::UP * cameraStep);
         }
         this->HandleUpdateExtra(eventType, eventData);
         this->steps++;
