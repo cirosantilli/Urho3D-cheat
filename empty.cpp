@@ -13,8 +13,8 @@ class Main : public Application {
 public:
     Main(Context* context) : Application(context) {}
     virtual void Setup() override {}
-    void Start() {}
-    void Stop() {}
+    virtual void Start() override {}
+    virtual void Stop() override {}
 };
 
 URHO3D_DEFINE_APPLICATION_MAIN(Main);
