@@ -1,13 +1,6 @@
 #ifndef COMMON_HPP
 #define COMMON_HPP
 
-/*
-Expected outcome:
-
-- press ESC: quit
-- release space: stdout shows a message
-*/
-
 #include <cmath>
 #include <iostream>
 
