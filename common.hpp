@@ -38,13 +38,13 @@ Expected outcome:
 #include <Urho3D/Urho2D/CollisionBox2D.h>
 #include <Urho3D/Urho2D/CollisionCircle2D.h>
 #include <Urho3D/Urho2D/ConstraintPrismatic2D.h>
+#include <Urho3D/Urho2D/ConstraintRope2D.h>
 #include <Urho3D/Urho2D/Drawable2D.h>
 #include <Urho3D/Urho2D/PhysicsEvents2D.h>
 #include <Urho3D/Urho2D/PhysicsWorld2D.h>
 #include <Urho3D/Urho2D/RigidBody2D.h>
 #include <Urho3D/Urho2D/Sprite2D.h>
 #include <Urho3D/Urho2D/StaticSprite2D.h>
-
 
 using namespace Urho3D;
 

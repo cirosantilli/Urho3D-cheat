@@ -29,9 +29,9 @@ public:
                 bottomWallNode = this->scene->CreateChild("BottomWall");
                 bottomWallNode->SetPosition(Vector2(this->windowWidth / 2.0, wallWidth / 2.0f));
                 wallBody = bottomWallNode->CreateComponent<RigidBody2D>();
-                auto box = bottomWallNode->CreateComponent<CollisionBox2D>();
-                box->SetSize(Vector2(wallLength, wallWidth));
-                box->SetRestitution(0.0);
+                auto shape = bottomWallNode->CreateComponent<CollisionBox2D>();
+                shape->SetSize(Vector2(wallLength, wallWidth));
+                shape->SetRestitution(0.0);
             } {
                 auto node = bottomWallNode->Clone();
                 node->SetName("TopWall");
@@ -102,7 +102,6 @@ public:
         this->text->SetHorizontalAlignment(HA_CENTER);
         this->text->SetVerticalAlignment(VA_CENTER);
     }
-    void Stop() override {}
 private:
     Node *ballNode, *leftWallNode, *playerNode, *rightWallNode;
     Text *text;

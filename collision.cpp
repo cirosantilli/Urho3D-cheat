@@ -12,7 +12,6 @@ class Main : public Common {
 public:
     Main(Context* context) : Common(context) {}
     virtual void StartExtra() override {
-        // Events
         this->physicsWorld->SetGravity(Vector2(0.0f, -this->windowWidth));
 
         // Ground
