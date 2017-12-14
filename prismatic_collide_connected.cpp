@@ -19,6 +19,7 @@ public:
         shape->SetSize(Vector2(floorLength, floorWidth));
         shape->SetFriction(1.0f);
         shape->SetRestitution(0.0);
+        shape->SetDensity(1.0f);
 
         // Does not collide.
         {

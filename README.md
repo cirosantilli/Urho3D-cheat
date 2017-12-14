@@ -17,6 +17,7 @@ Examples:
 1.  [scale_sprite.cpp](scale_sprite.cpp)
 1.  [velocity_stop.cpp](velocity_stop.cpp)
 1.  [text.cpp](text.cpp)
+1.  [pong.cpp](pong.cpp)
 1.  [TODO](TODO.md)
-    1.  [pong.cpp](pong.cpp)
+    1.  [biped.cpp](biped.cpp)
     1.  [prismatic_collide_connected.cpp](prismatic_collide_connected.cpp)

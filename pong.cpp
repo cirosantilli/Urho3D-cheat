@@ -18,8 +18,7 @@ public:
     Main(Context* context) : Common(context) {}
     virtual void StartExtra() override {
         // Application state.
-        this->score = 0;
-        this->text->SetText(std::to_string(this->score).c_str());
+        this->SetScore(0);
 
         // Scene
         {
@@ -63,8 +62,7 @@ public:
                 body->SetLinearDamping(5.0);
 
                 // TODO can't collide with ground after setting prismatic constraint,
-                // despite `constraint->SetCollideConnected(true)`. Using a separate body as workaround for now,
-                // will ask question later.
+                // See prismatic_collide_connected.cpp
                 auto bottomWallCloneNode = bottomWallNode->Clone();
                 bottomWallCloneNode->SetName("Player");
                 bottomWallCloneNode->SetPosition(Vector2(windowHeight / 2.0f, -windowWidth));
@@ -130,11 +128,10 @@ private:
             isBall = true;
         }
         if (otherNode == this->rightWallNode) {
-            this->score++;
+            this->SetScore(this->score + 1);
         } else if (otherNode == this->leftWallNode) {
-            this->score = 0;
+            this->SetScore(0);
         }
-        this->text->SetText(std::to_string(this->score).c_str());
     }
 
     virtual void HandleUpdateExtra(StringHash eventType, VariantMap& eventData) override {
@@ -147,6 +144,11 @@ private:
         if (this->input->GetKeyDown(KEY_W)) {
             body->ApplyForceToCenter(Vector2::UP * forceMagnitude, true);
         }
+    }
+
+    void SetScore(uint64_t score) {
+        this->score = score;
+        this->text->SetText(std::to_string(this->score).c_str());
     }
 };
 

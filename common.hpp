@@ -30,8 +30,17 @@
 #include <Urho3D/UI/UI.h>
 #include <Urho3D/Urho2D/CollisionBox2D.h>
 #include <Urho3D/Urho2D/CollisionCircle2D.h>
+#include <Urho3D/Urho2D/ConstraintDistance2D.h>
+#include <Urho3D/Urho2D/ConstraintFriction2D.h>
+#include <Urho3D/Urho2D/ConstraintGear2D.h>
+#include <Urho3D/Urho2D/ConstraintMotor2D.h>
+#include <Urho3D/Urho2D/ConstraintMouse2D.h>
 #include <Urho3D/Urho2D/ConstraintPrismatic2D.h>
+#include <Urho3D/Urho2D/ConstraintPulley2D.h>
+#include <Urho3D/Urho2D/ConstraintRevolute2D.h>
 #include <Urho3D/Urho2D/ConstraintRope2D.h>
+#include <Urho3D/Urho2D/ConstraintWeld2D.h>
+#include <Urho3D/Urho2D/ConstraintWheel2D.h>
 #include <Urho3D/Urho2D/Drawable2D.h>
 #include <Urho3D/Urho2D/PhysicsEvents2D.h>
 #include <Urho3D/Urho2D/PhysicsWorld2D.h>
@@ -76,12 +85,12 @@ public:
 
         // Camera
         this->cameraNode = this->scene->CreateChild("Camera");
-        this->cameraNode->SetPosition(Vector3(windowWidth / 2.0f, windowHeight / 2.0f, -1.0f));
+        this->cameraNode->SetPosition(Vector3(this->windowWidth / 2.0f, this->windowHeight / 2.0f, -1.0f));
         this->camera = this->cameraNode->CreateComponent<Camera>();
-        this->camera->SetOrthoSize(windowWidth);
+        this->camera->SetOrthoSize(this->windowWidth);
         this->camera->SetOrthographic(true);
         auto renderer = GetSubsystem<Renderer>();
-        SharedPtr<Viewport> viewport(new Viewport(context_, this->scene, this->cameraNode->GetComponent<Camera>()));
+        SharedPtr<Viewport> viewport(new Viewport(this->context_, this->scene, this->cameraNode->GetComponent<Camera>()));
         renderer->SetViewport(0, viewport);
 
         // Non-urho.
