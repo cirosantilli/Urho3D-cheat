@@ -68,6 +68,7 @@ public:
             SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Common, HandlePostRenderUpdate));
             SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Common, HandleUpdate));
             SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Common, HandlePhysicsBeginContact2D));
+            SubscribeToEvent(E_MOUSEBUTTONDOWN, URHO3D_HANDLER(Common, HandleMouseButtonDown));
             StartOnce();
         }
 
@@ -93,6 +94,10 @@ public:
         SharedPtr<Viewport> viewport(new Viewport(this->context_, this->scene, this->cameraNode->GetComponent<Camera>()));
         renderer->SetViewport(0, viewport);
 
+        auto dummyNode = this->scene->CreateChild("Dummy");
+        this->dummyBody = dummyNode->CreateComponent<RigidBody2D>();
+        this->pickedNode = nullptr;
+
         // Non-urho.
         this->steps = 0;
 
@@ -102,9 +107,10 @@ public:
 protected:
     Camera *camera;
     Input *input;
-    Node *cameraNode;
+    Node *cameraNode, *dummyNode, *pickedNode;
     PhysicsWorld2D *physicsWorld;
     ResourceCache *resourceCache;
+    RigidBody2D *dummyBody;
     SharedPtr<Scene> scene;
     uint64_t steps;
 
@@ -118,13 +124,58 @@ protected:
     static constexpr float cameraSpeed = 1.0;
     static constexpr float cameraZoomSpeed = 0.5f;
 
+    Vector2 GetMousePositionXY() {
+        auto graphics = GetSubsystem<Graphics>();
+        auto screenPoint = Vector3(
+            (float)this->input->GetMousePosition().x_ / graphics->GetWidth(),
+            (float)this->input->GetMousePosition().y_ / graphics->GetHeight(),
+            0.0f
+        );
+        auto worldPoint = this->camera->ScreenToWorldPoint(screenPoint);
+        return Vector2(worldPoint.x_, worldPoint.y_);
+    }
+
     void HandlePhysicsBeginContact2D(StringHash eventType, VariantMap& eventData) {
         this->HandlePhysicsBeginContact2DExtra(eventType, eventData);
     }
+
+    void HandleMouseButtonDown(StringHash eventType, VariantMap& eventData) {
+        auto mousePosition = this->input->GetMousePosition();
+        auto rigidBody = this->physicsWorld->GetRigidBody(mousePosition.x_, mousePosition.y_, M_MAX_UNSIGNED);
+        if (rigidBody) {
+            this->pickedNode = rigidBody->GetNode();
+            auto constraintMouse = this->pickedNode->CreateComponent<ConstraintMouse2D>();
+            constraintMouse->SetTarget(this->GetMousePositionXY());
+            constraintMouse->SetMaxForce(1000 * rigidBody->GetMass());
+            constraintMouse->SetCollideConnected(true);
+            constraintMouse->SetOtherBody(this->dummyBody);
+        }
+        SubscribeToEvent(E_MOUSEMOVE, URHO3D_HANDLER(Common, HandleMouseMove));
+        SubscribeToEvent(E_MOUSEBUTTONUP, URHO3D_HANDLER(Common, HandleMouseButtonUp));
+    }
+
     virtual void HandlePhysicsBeginContact2DExtra(StringHash eventType, VariantMap& eventData) {}
+
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
         this->physicsWorld->DrawDebugGeometry();
     }
+
+    void HandleMouseButtonUp(StringHash eventType, VariantMap& eventData) {
+        if (this->pickedNode) {
+            this->pickedNode->RemoveComponent<ConstraintMouse2D>();
+            this->pickedNode = nullptr;
+        }
+        UnsubscribeFromEvent(E_MOUSEMOVE);
+        UnsubscribeFromEvent(E_MOUSEBUTTONUP);
+    }
+
+    void HandleMouseMove(StringHash eventType, VariantMap& eventData) {
+        if (this->pickedNode) {
+            auto constraintMouse = this->pickedNode->GetComponent<ConstraintMouse2D>();
+            constraintMouse->SetTarget(this->GetMousePositionXY());
+        }
+    }
+
     void HandleUpdate(StringHash eventType, VariantMap& eventData) {
         using namespace Update;
         auto timeStep = eventData[P_TIMESTEP].GetFloat();
@@ -161,8 +212,11 @@ protected:
         this->HandleUpdateExtra(eventType, eventData);
         this->steps++;
     }
+
     virtual void HandleUpdateExtra(StringHash eventType, VariantMap& eventData) {}
+
     virtual void StartExtra() {}
+
     /// Start steps that are not rerun when restart the scene,
     /// only the first time the application starts.
     virtual void StartOnce() {}
