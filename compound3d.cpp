@@ -49,8 +49,6 @@ public:
 
         // Events
         SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
-        SubscribeToEvent(E_NODECOLLISIONSTART, URHO3D_HANDLER(Main, HandleNodeCollisionStart));
-        SubscribeToEvent(E_PHYSICSCOLLISIONSTART, URHO3D_HANDLER(Main, HandlePhysicsCollisionStart));
         SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Main, HandlePostRenderUpdate));
 
         // Scene
@@ -106,84 +104,6 @@ public:
 private:
     SharedPtr<Scene> scene;
     Node *leftBallNode, *rightBallNode, *groundNode;
-    void HandleNodeCollisionStart(StringHash eventType, VariantMap& eventData) {
-        using namespace NodeCollisionStart;
-        std::cout << "HandleNodeCollisionStart" << std::endl;
-        assert(eventType == E_NODECOLLISIONSTART);
-        auto body = static_cast<RigidBody*>(eventData[P_BODY].GetPtr());
-        std::cout << "this body mass " << body->GetMass() << std::endl;
-        auto otherBody = static_cast<RigidBody*>(eventData[P_OTHERBODY].GetPtr());
-        std::cout << "other body mass " << otherBody->GetMass() << std::endl;
-        auto otherNode = static_cast<Node*>(eventData[P_OTHERNODE].GetPtr());
-        std::cout << "other node name " << otherNode->GetName().CString() << std::endl;
-        auto trigger = static_cast<bool>(eventData[P_TRIGGER].GetPtr());
-        std::cout << "trigger " << trigger << std::endl;
-        MemoryBuffer contacts(eventData[P_CONTACTS].GetBuffer());
-        while (!contacts.IsEof()) {
-            Vector3 contactPosition = contacts.ReadVector3();
-            Vector3 contactNormal = contacts.ReadVector3();
-            float contactDistance = contacts.ReadFloat();
-            float contactImpulse = contacts.ReadFloat();
-            std::cout << "contact position " << contactPosition.ToString().CString() << std::endl;
-            std::cout << "contact normal " << contactNormal.ToString().CString() << std::endl;
-            std::cout << "contact distance " << contactDistance << std::endl;
-            std::cout << "contact impulse " << contactImpulse << std::endl;
-        }
-        std::cout << std::endl;
-
-    }
-    void HandlePhysicsCollisionStart(StringHash eventType, VariantMap& eventData) {
-        using namespace PhysicsCollisionStart;
-        std::cout << "HandlePhysicsCollisionStart" << std::endl;
-        assert(eventType == E_PHYSICSCOLLISIONSTART);
-
-        // nodea
-        auto nodea = static_cast<Node*>(eventData[P_NODEA].GetPtr());
-        std::cout << "node a name " << nodea->GetName().CString() << std::endl;
-        if (nodea == this->leftBallNode) {
-            std::cout << "node a == leftBallNode" << std::endl;
-        } else if (nodea == this->rightBallNode) {
-            std::cout << "node a == rightBallNode" << std::endl;
-        } else if (nodea == this->groundNode) {
-            std::cout << "node a == groundNode" << std::endl;
-        }
-
-        // nodeb
-        auto nodeb = static_cast<Node*>(eventData[P_NODEB].GetPtr());
-        std::cout << "node b name " << nodeb->GetName().CString() << std::endl;
-        if (nodeb == this->leftBallNode) {
-            std::cout << "node b == leftBallNode" << std::endl;
-        } else if (nodeb == this->rightBallNode) {
-            std::cout << "node b == rightBallNode" << std::endl;
-        } else if (nodeb == this->groundNode) {
-            std::cout << "node b == groundNode" << std::endl;
-        }
-
-        // bodies
-        auto bodya = static_cast<RigidBody*>(eventData[P_BODYA].GetPtr());
-        std::cout << "body a mass " << bodya->GetMass() << std::endl;
-        auto bodyb = static_cast<RigidBody*>(eventData[P_BODYB].GetPtr());
-        std::cout << "body b mass " << bodyb->GetMass() << std::endl;
-
-        // trigger
-        auto trigger = static_cast<Node*>(eventData[P_TRIGGER].GetPtr());
-        std::cout << "trigger " << trigger << std::endl;
-
-        // contact
-        MemoryBuffer contacts(eventData[P_CONTACTS].GetBuffer());
-        while (!contacts.IsEof()) {
-            auto contactPosition = contacts.ReadVector3();
-            auto contactNormal = contacts.ReadVector3();
-            auto contactDistance = contacts.ReadFloat();
-            auto contactImpulse = contacts.ReadFloat();
-            std::cout << "contact position " << contactPosition.ToString().CString() << std::endl;
-            std::cout << "contact normal " << contactNormal.ToString().CString() << std::endl;
-            std::cout << "contact distance " << contactDistance << std::endl;
-            std::cout << "contact impulse " << contactImpulse << std::endl;
-        }
-
-        std::cout << std::endl;
-    }
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
         scene->GetComponent<PhysicsWorld>()->DrawDebugGeometry(true);
     }
