@@ -3,7 +3,6 @@ Single player pong-like game, more like squash.
 
 TODO:
 
-- make player edges rounded. Probably attach two colision circles to the edgest of the player.
 - ball gets too fast when player hits it while moving up / down. How to prevent this?
 - ball speed can get too vertical, and it takes forever to hit wall and come back
 - ball speed can get too horizontal, and then it becomes too trivial. We need some random / adversarial aspect to make it more interesting.
@@ -74,11 +73,32 @@ public:
                 constraint->SetAnchor(Vector2(this->windowWidth / 2.0f, 0.0f));
                 constraint->SetCollideConnected(true);
 
-                auto shape = node->GetComponent<CollisionBox2D>();
-                shape->SetDensity(this->playerDensity);
-                shape->SetFriction(1.0f);
-                shape->SetRestitution(0.0);
-                shape->SetSize(Vector2(playerLength, wallWidth));
+                // Main rectangle
+                {
+                    auto shape = node->GetComponent<CollisionBox2D>();
+                    shape->SetDensity(this->playerDensity);
+                    shape->SetFriction(this->playerFriction);
+                    shape->SetRestitution(this->playerRestitution);
+                    shape->SetSize(Vector2(this->playerLength, this->wallWidth));
+                }
+                // Upper circle
+                {
+                    auto shape = node->CreateComponent<CollisionCircle2D>();
+                    shape->SetDensity(0.0f);
+                    shape->SetFriction(this->playerFriction);
+                    shape->SetRestitution(this->playerRestitution);
+                    shape->SetCenter(Vector2(this->playerLength / 2.0f, 0.0f));
+                    shape->SetRadius(this->wallWidth / 2.0f);
+                }
+                // Lower circle
+                {
+                    auto shape = node->CreateComponent<CollisionCircle2D>();
+                    shape->SetDensity(0.0f);
+                    shape->SetFriction(this->playerFriction);
+                    shape->SetRestitution(this->playerRestitution);
+                    shape->SetCenter(Vector2(-this->playerLength / 2.0f, 0.0f));
+                    shape->SetRadius(this->wallWidth / 2.0f);
+                }
             } {
                 this->ballNode = this->scene->CreateChild("Ball");
                 this->ballNode->SetPosition(Vector2(this->windowWidth / 4.0f, windowHeight / 2.0f));
@@ -110,6 +130,8 @@ private:
     static constexpr float ballDensity = 1.0f;
     static constexpr float playerDensity = 10.0f * ballDensity;
     static constexpr float playerLength = windowHeight / 4.0f;
+    static constexpr float playerFriction = 1.0f;
+    static constexpr float playerRestitution = 0.0f;
     static constexpr float wallLength = windowWidth;
     static constexpr float wallWidth = windowWidth / 20.0f;
 
