@@ -22,53 +22,114 @@ public:
             shape->SetRestitution(0.75f);
         }
 
-        Node *leftThighNode = leftThighNode;
-        leftThighNode = groundNode->Clone();
-        leftThighNode->SetName("LeftThigh");
-        leftThighNode->SetPosition(Vector2(this->windowWidth / 2.0f, this->thighLength / 2.0f + this->thickness));
+        Node *leftCalfNode = leftCalfNode;
+        leftCalfNode = groundNode->Clone();
+        leftCalfNode->SetName("LeftCalf");
+        leftCalfNode->SetPosition(Vector2(this->windowWidth / 2.0f, this->calfLength / 2.0f + this->thickness));
         {
-            auto body = leftThighNode->GetComponent<RigidBody2D>();
+            auto body = leftCalfNode->GetComponent<RigidBody2D>();
             body->SetBodyType(BT_DYNAMIC);
-            auto shape = leftThighNode->GetComponent<CollisionBox2D>();
-            shape->SetSize(Vector2(thickness, thighLength));
+            auto shape = leftCalfNode->GetComponent<CollisionBox2D>();
+            shape->SetSize(Vector2(thickness, calfLength));
             shape->SetDensity(this->density);
             shape->SetFriction(1000.0f);
             shape->SetRestitution(0.0);
         }
 
-        Node *rightThighNode = rightThighNode;
-        rightThighNode = leftThighNode->Clone();
-        rightThighNode->SetName("RightThigh");
-        rightThighNode->Translate(Vector2::RIGHT * (this->hipLength + this->thickness));
+        Node *rightCalfNode = rightCalfNode;
+        rightCalfNode = leftCalfNode->Clone();
+        rightCalfNode->SetName("RightCalf");
+        rightCalfNode->Translate(Vector2::RIGHT * 2.0f * (this->thighLength + this->thickness));
 
-        Node *hipNode = leftThighNode->Clone();
-        hipNode->SetName("Hip");
-        hipNode->Translate(Vector2(
-            this->hipLength / 2.0f + this->thickness / 2.0f,
-            this->thighLength / 2.0f + this->thickness / 2.0f)
-        );
-        hipNode->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
-        auto hipBody = hipNode->GetComponent<RigidBody2D>();
+        Node *leftThighNode = leftCalfNode->Clone();
+        leftThighNode->SetName("LeftleftThigh");
+        leftThighNode->Translate(Vector2(
+            this->thighLength / 2.0f + this->thickness / 2.0f,
+            this->calfLength / 2.0f + this->thickness / 2.0f
+        ));
+        leftThighNode->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
+        auto leftThighBody = leftThighNode->GetComponent<RigidBody2D>();
+
+        Node *rightThighNode = leftCalfNode->Clone();
+        rightThighNode->SetName("RightThigh");
+        rightThighNode->Translate(Vector2(
+            1.5f * (this->thighLength + this->thickness),
+            this->calfLength / 2.0f + this->thickness / 2.0f
+        ));
+        rightThighNode->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
+        auto rightThighBody = rightThighNode->GetComponent<RigidBody2D>();
+
+        Node *upperArmNode = leftCalfNode->Clone();
+        upperArmNode->SetName("UpperArm");
+        upperArmNode->Translate(Vector2(
+            this->calfLength + this->thickness,
+            this->thighLength + this->thickness
+        ));
+        auto upperArmBody = upperArmNode->GetComponent<RigidBody2D>();
+
+        Node *foreArmNode = leftCalfNode->Clone();
+        foreArmNode->SetName("ForeArm");
+        foreArmNode->Translate(Vector2(
+            this->calfLength + this->thickness,
+            2.0f * (this->thighLength + this->thickness)
+        ));
+        auto foreArmBody = foreArmNode->GetComponent<RigidBody2D>();
 
         {
-            auto& constraint = leftThighHipConstraint;
-            constraint = leftThighNode->CreateComponent<ConstraintRevolute2D>();
-            constraint->SetOtherBody(hipBody);
+            auto& constraint = this->leftCalfLeftThighConstraint;
+            constraint = leftCalfNode->CreateComponent<ConstraintRevolute2D>();
+            constraint->SetOtherBody(leftThighBody);
             constraint->SetAnchor(
-                leftThighNode->GetPosition2D() +
-                Vector2(0.0, this->thighLength / 2.0f + this->thickness / 2.0f)
+                leftCalfNode->GetPosition2D() +
+                Vector2(0.0, this->calfLength / 2.0f + this->thickness / 2.0f)
             );
             constraint->SetCollideConnected(true);
             constraint->SetMaxMotorTorque(this->maxMotorTorque);
             constraint->SetEnableMotor(true);
         }
         {
-            auto& constraint = rightThighHipConstraint;
-            constraint = rightThighNode->CreateComponent<ConstraintRevolute2D>();
-            constraint->SetOtherBody(hipBody);
+            auto& constraint = this->rightCalfRightThighConstraint;
+            constraint = rightCalfNode->CreateComponent<ConstraintRevolute2D>();
+            constraint->SetOtherBody(rightThighBody);
             constraint->SetAnchor(
-                rightThighNode->GetPosition2D()
-                + Vector2(0.0, this->thighLength / 2.0f + this->thickness / 2.0f)
+                rightCalfNode->GetPosition2D() +
+                Vector2(0.0, this->calfLength / 2.0f + this->thickness / 2.0f)
+            );
+            constraint->SetCollideConnected(true);
+            constraint->SetMaxMotorTorque(this->maxMotorTorque);
+            constraint->SetEnableMotor(true);
+        }
+        {
+            auto& constraint = this->leftThighRightThighConstraint;
+            constraint = leftThighNode->CreateComponent<ConstraintRevolute2D>();
+            constraint->SetOtherBody(rightThighBody);
+            constraint->SetAnchor(
+                leftThighNode->GetPosition2D() +
+                Vector2(this->calfLength / 2.0f + this->thickness / 2.0f, 0.0f)
+            );
+            constraint->SetCollideConnected(true);
+            constraint->SetMaxMotorTorque(this->maxMotorTorque);
+            constraint->SetEnableMotor(true);
+        }
+        {
+            auto& constraint = this->leftThighUpperArmConstraint;
+            constraint = leftThighNode->CreateComponent<ConstraintRevolute2D>();
+            constraint->SetOtherBody(upperArmBody);
+            constraint->SetAnchor(
+                leftThighNode->GetPosition2D() +
+                Vector2(this->calfLength / 2.0f + this->thickness / 2.0f, 0.0f)
+            );
+            constraint->SetCollideConnected(true);
+            constraint->SetMaxMotorTorque(this->maxMotorTorque);
+            constraint->SetEnableMotor(true);
+        }
+        {
+            auto& constraint = this->upperArmForeArmConstraint;
+            constraint = upperArmNode->CreateComponent<ConstraintRevolute2D>();
+            constraint->SetOtherBody(foreArmBody);
+            constraint->SetAnchor(
+                upperArmNode->GetPosition2D() +
+                Vector2(0.0f, this->calfLength / 2.0f + this->thickness / 2.0f)
             );
             constraint->SetCollideConnected(true);
             constraint->SetMaxMotorTorque(this->maxMotorTorque);
@@ -79,28 +140,55 @@ private:
     static constexpr float density = 1.0f;
     static constexpr float groundWidth = windowWidth;
     static constexpr float thickness = windowWidth / 50.0f;
-    static constexpr float thighLength = windowWidth / 10.0f;
-    static constexpr float hipLength = 1.2f * thighLength;
+    static constexpr float calfLength = windowWidth / 10.0f;
+    static constexpr float thighLength = calfLength;
     static constexpr float maxMotorTorque = 10.0f * density;
     static constexpr float motorSpeed = 10.0f;
 
-    ConstraintRevolute2D *leftThighHipConstraint, *rightThighHipConstraint;
+    ConstraintRevolute2D
+        *leftCalfLeftThighConstraint,
+        *leftThighRightThighConstraint,
+        *leftThighUpperArmConstraint,
+        *rightCalfRightThighConstraint,
+        *upperArmForeArmConstraint
+    ;
 
     virtual void HandleUpdateExtra(StringHash eventType, VariantMap& eventData) override {
         using namespace Update;
         if (this->input->GetKeyDown(KEY_A)) {
-            this->leftThighHipConstraint->SetMotorSpeed(this->motorSpeed);
+            this->leftCalfLeftThighConstraint->SetMotorSpeed(this->motorSpeed);
         } else if (this->input->GetKeyDown(KEY_D)) {
-            this->leftThighHipConstraint->SetMotorSpeed(-this->motorSpeed);
+            this->leftCalfLeftThighConstraint->SetMotorSpeed(-this->motorSpeed);
         } else {
-            this->leftThighHipConstraint->SetMotorSpeed(0.0f);
+            this->leftCalfLeftThighConstraint->SetMotorSpeed(0.0f);
+        }
+        if (this->input->GetKeyDown(KEY_W)) {
+            this->leftThighRightThighConstraint->SetMotorSpeed(this->motorSpeed);
+        } else if (this->input->GetKeyDown(KEY_S)) {
+            this->leftThighRightThighConstraint->SetMotorSpeed(-this->motorSpeed);
+        } else {
+            this->rightCalfRightThighConstraint->SetMotorSpeed(0.0f);
         }
         if (this->input->GetKeyDown(KEY_J)) {
-            this->rightThighHipConstraint->SetMotorSpeed(this->motorSpeed);
+            this->rightCalfRightThighConstraint->SetMotorSpeed(this->motorSpeed);
         } else if (this->input->GetKeyDown(KEY_L)) {
-            this->rightThighHipConstraint->SetMotorSpeed(-this->motorSpeed);
+            this->rightCalfRightThighConstraint->SetMotorSpeed(-this->motorSpeed);
         } else {
-            this->rightThighHipConstraint->SetMotorSpeed(0.0f);
+            this->rightCalfRightThighConstraint->SetMotorSpeed(0.0f);
+        }
+        if (this->input->GetKeyDown(KEY_I)) {
+            this->leftThighUpperArmConstraint->SetMotorSpeed(this->motorSpeed);
+        } else if (this->input->GetKeyDown(KEY_K)) {
+            this->leftThighUpperArmConstraint->SetMotorSpeed(-this->motorSpeed);
+        } else {
+            this->leftThighUpperArmConstraint->SetMotorSpeed(0.0f);
+        }
+        if (this->input->GetKeyDown(KEY_Q)) {
+            this->upperArmForeArmConstraint->SetMotorSpeed(this->motorSpeed);
+        } else if (this->input->GetKeyDown(KEY_E)) {
+            this->upperArmForeArmConstraint->SetMotorSpeed(-this->motorSpeed);
+        } else {
+            this->upperArmForeArmConstraint->SetMotorSpeed(0.0f);
         }
     }
 
