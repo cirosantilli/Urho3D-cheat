@@ -3,6 +3,7 @@ Single player pong-like game, more like squash.
 
 TODO:
 
+- when ball hits left wall, give some visual / sound cue of damage, e.g. make background red. Possibly also give a good cue when it hits right wall.
 - ball gets too fast when player hits it while moving up / down. How to prevent this?
 - ball speed can get too vertical, and it takes forever to hit wall and come back
 - ball speed can get too horizontal, and then it becomes too trivial. We need some random / adversarial aspect to make it more interesting.
@@ -33,19 +34,19 @@ public:
             } {
                 auto node = bottomWallNode->Clone();
                 node->SetName("TopWall");
-                node->SetPosition(Vector2(this->windowWidth / 2.0f, windowHeight - (wallWidth / 2.0f)));
+                node->SetPosition(Vector2(this->windowWidth / 2.0f, this->windowHeight - (this->wallWidth / 2.0f)));
             } {
                 auto& node = this->rightWallNode;
                 node = bottomWallNode->Clone();
                 node->SetName("RightWall");
                 node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
-                node->SetPosition(Vector2(this->windowWidth - (wallWidth / 2.0f), windowHeight / 2.0f));
+                node->SetPosition(Vector2(this->windowWidth - (this->wallWidth / 2.0f), this->windowHeight / 2.0f));
             } {
                 auto& node = this->leftWallNode;
                 node = bottomWallNode->Clone();
                 node->SetName("LeftWall");
                 node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
-                node->SetPosition(Vector2(-wallWidth / 2.0f, windowHeight / 2.0f));
+                node->SetPosition(Vector2(-this->wallWidth / 2.0f, this->windowHeight / 2.0f));
             } {
                 auto& node = this->playerNode;
                 node = bottomWallNode->Clone();
