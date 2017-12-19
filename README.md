@@ -6,6 +6,11 @@ Build and run a demo:
 
     ./run
 
+Run another demo:
+
+    cd build
+    ./bin/biped
+
 Examples:
 
 1.  [empty.cpp](empty.cpp)

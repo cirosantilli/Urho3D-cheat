@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <map>
 
 #include <Urho3D/Core/CoreEvents.h>
 #include <Urho3D/Core/Object.h>
@@ -124,7 +125,7 @@ protected:
     static constexpr float cameraSpeed = 1.0;
     static constexpr float cameraZoomSpeed = 0.5f;
 
-    Vector2 GetMousePositionXY() {
+    Vector2 GetMousePositionWorld() {
         auto graphics = GetSubsystem<Graphics>();
         auto screenPoint = Vector3(
             (float)this->input->GetMousePosition().x_ / graphics->GetWidth(),
@@ -140,12 +141,12 @@ protected:
     }
 
     void HandleMouseButtonDown(StringHash eventType, VariantMap& eventData) {
-        auto mousePosition = this->input->GetMousePosition();
-        auto rigidBody = this->physicsWorld->GetRigidBody(mousePosition.x_, mousePosition.y_, M_MAX_UNSIGNED);
+        auto mousePositionWorld = this->GetMousePositionWorld();
+        auto rigidBody = this->physicsWorld->GetRigidBody(mousePositionWorld);
         if (rigidBody) {
             this->pickedNode = rigidBody->GetNode();
             auto constraintMouse = this->pickedNode->CreateComponent<ConstraintMouse2D>();
-            constraintMouse->SetTarget(this->GetMousePositionXY());
+            constraintMouse->SetTarget(mousePositionWorld);
             constraintMouse->SetMaxForce(1000 * rigidBody->GetMass());
             constraintMouse->SetCollideConnected(true);
             constraintMouse->SetOtherBody(this->dummyBody);
@@ -172,7 +173,7 @@ protected:
     void HandleMouseMove(StringHash eventType, VariantMap& eventData) {
         if (this->pickedNode) {
             auto constraintMouse = this->pickedNode->GetComponent<ConstraintMouse2D>();
-            constraintMouse->SetTarget(this->GetMousePositionXY());
+            constraintMouse->SetTarget(this->GetMousePositionWorld());
         }
     }
 
