@@ -44,6 +44,7 @@ public:
                 node->SetPosition(Vector2(this->windowWidth / 4.0f, windowHeight / 2.0f));
                 auto body = node->CreateComponent<RigidBody2D>();
                 body->SetBodyType(BT_DYNAMIC);
+                body->SetLinearDamping(4.0);
                 auto shape = node->CreateComponent<CollisionCircle2D>();
                 shape->SetDensity(this->playerDensity);
                 shape->SetFriction(0.0f);
@@ -105,7 +106,38 @@ private:
 
     virtual void HandleUpdateExtra(StringHash eventType, VariantMap& eventData) override {
         using namespace Update;
-        auto forceMagnitude = this->windowWidth * this->playerDensity;
+
+        // Camera
+        std::vector<Node*> results;
+        auto nrays = 8u;
+        auto angleStep = 360.0f / nrays;
+        for (auto i = 0u; i < nrays; ++i) {
+            auto angle = i * angleStep;
+            auto direction3 = Quaternion(0.0f, 0.0f, angle) * Vector3::RIGHT;
+            auto direction = Vector2(direction3.x_, direction3.y_);
+            auto position = this->playerNode->GetPosition2D();
+            auto startPoint = position + (this->playerRadius * direction);
+            auto endPoint = position + (2.0f * this->windowWidth * direction);
+            PhysicsRaycastResult2D result;
+            this->physicsWorld->RaycastSingle(result, startPoint, endPoint);
+            auto body = result.body_;
+            if (nullptr == body) {
+                results.push_back(nullptr);
+            } else {
+                results.push_back(body->GetNode());
+            }
+        }
+        for (const auto& result : results) {
+            if (result == nullptr) {
+                std::cout << "nullptr" << std::endl;
+            } else {
+                std::cout << result->GetName().CString() << std::endl;
+            }
+        }
+        std::cout << std::endl;
+
+        // Act
+        auto forceMagnitude = 4.0f * this->windowWidth * this->playerDensity;
         auto body = this->playerNode->GetComponent<RigidBody2D>();
         if (this->input->GetKeyDown(KEY_S)) {
             body->ApplyForceToCenter(Vector2::DOWN * forceMagnitude, true);
