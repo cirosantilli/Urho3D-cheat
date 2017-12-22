@@ -109,8 +109,8 @@ public:
                 auto shape = this->ballNode->CreateComponent<CollisionCircle2D>();
                 shape->SetDensity(this->ballDensity);
                 shape->SetFriction(0.0f);
-                shape->SetRadius(ballRadius);
-                shape->SetRestitution(ballRestitution);
+                shape->SetRadius(this->ballRadius);
+                shape->SetRestitution(this->ballRestitution);
             }
         }
     }
@@ -150,7 +150,7 @@ private:
             otherNode = nodea;
             isBall = true;
         }
-        if (otherNode == this->rightWallNode) {
+        if (isBall && otherNode == this->rightWallNode) {
             this->SetScore(this->score + 1);
         } else if (otherNode == this->leftWallNode) {
             this->SetScore(0);

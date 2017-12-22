@@ -253,7 +253,6 @@ private:
     static constexpr float motorSpeed = 10.0f;
     static constexpr float friction = 1000.0f;
     static constexpr float restitution = 0.0f;
-    static constexpr unsigned int resolution = 100;
 
     ConstraintRevolute2D
         *foreArmLeftFingerConstraint,
@@ -267,26 +266,6 @@ private:
 
     virtual void HandleUpdateExtra(StringHash eventType, VariantMap& eventData) override {
         using namespace Update;
-
-        // Generate robot input
-        // TODO use a spacial index instead.
-        std::map<Vector2, Node*> worldVoxel;
-        for (unsigned int x = 0; x < this->resolution; ++x) {
-            for (unsigned int y = 0; y < this->resolution; ++y) {
-                auto worldPosition = Vector2(
-                    x * this->windowHeight / this->resolution,
-                    y * this->windowWidth / this->resolution
-                );
-                auto rigidBody = this->physicsWorld->GetRigidBody(Vector2(worldPosition));
-                if (rigidBody) {
-                    auto node = rigidBody->GetNode();
-                    worldVoxel.emplace()
-                    //std::cout << x << " " << y << " " << node->GetName().CString() << std::endl;
-                }
-            }
-        }
-
-        // Make robot move
         if (this->input->GetKeyDown(KEY_A)) {
             this->leftCalfLeftThighConstraint->SetMotorSpeed(this->motorSpeed);
         } else if (this->input->GetKeyDown(KEY_D)) {

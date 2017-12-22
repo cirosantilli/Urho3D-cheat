@@ -4,6 +4,7 @@
 #include <cmath>
 #include <iostream>
 #include <map>
+#include <vector>
 
 #include <Urho3D/Core/CoreEvents.h>
 #include <Urho3D/Core/Object.h>
@@ -69,6 +70,7 @@ public:
             SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Common, HandlePostRenderUpdate));
             SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Common, HandleUpdate));
             SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Common, HandlePhysicsBeginContact2D));
+            SubscribeToEvent(E_PHYSICSPRESTEP, URHO3D_HANDLER(Common, HandlePhysicsPreStep));
             SubscribeToEvent(E_MOUSEBUTTONDOWN, URHO3D_HANDLER(Common, HandleMouseButtonDown));
             StartOnce();
         }
@@ -101,11 +103,13 @@ public:
 
         // Non-urho.
         this->steps = 0;
+        this->debugEvents = false;
 
         this->StartExtra();
     }
     virtual void Stop() override {}
 protected:
+    bool debugEvents;
     Camera *camera;
     Input *input;
     Node *cameraNode, *dummyNode, *pickedNode;
@@ -114,6 +118,9 @@ protected:
     RigidBody2D *dummyBody;
     SharedPtr<Scene> scene;
     uint64_t steps;
+    // Generate robot input
+    // TODO use a spacial index instead.
+    std::vector<std::pair<Vector2, Node *>> worldVoxel;
 
     /// Everything in the scene should be proportional to this number,
     /// so that we can set it to anything we want without changing anything.
@@ -124,6 +131,7 @@ protected:
     static constexpr float windowHeight = windowWidth;
     static constexpr float cameraSpeed = 1.0;
     static constexpr float cameraZoomSpeed = 0.5f;
+    static constexpr unsigned int voxelResolution = 100;
 
     Vector2 GetMousePositionWorld() {
         auto graphics = GetSubsystem<Graphics>();
@@ -180,16 +188,15 @@ protected:
     void HandleUpdate(StringHash eventType, VariantMap& eventData) {
         using namespace Update;
         auto timeStep = eventData[P_TIMESTEP].GetFloat();
+        if (this->debugEvents) {
+            std::cout << "HandleUpdate" << std::endl;
+            std::cout << "timeStep = " << timeStep << std::endl;
+        }
         auto cameraStep = this->camera->GetOrthoSize() * (1.0f / this->camera->GetZoom()) * this->cameraSpeed * timeStep;
+
+        // Camera
         if (this->input->GetKeyDown(KEY_DOWN)) {
             this->cameraNode->Translate(Vector2::DOWN * cameraStep);
-        }
-        if (this->input->GetKeyDown(KEY_ESCAPE)) {
-            engine_->Exit();
-        }
-        if (this->input->GetKeyDown(KEY_F5)) {
-            File saveFile(this->context_, GetSubsystem<FileSystem>()->GetProgramDir() + String(this->steps) + ".xml", FILE_WRITE);
-            this->scene->SaveXML(saveFile);
         }
         if (this->input->GetKeyDown(KEY_LEFT)) {
             this->cameraNode->Translate(Vector2::LEFT * cameraStep);
@@ -200,18 +207,54 @@ protected:
         if (input->GetKeyDown(KEY_PAGEDOWN)) {
             this->camera->SetZoom(this->camera->GetZoom() * std::pow(this->cameraZoomSpeed, timeStep));
         }
-        if (this->input->GetKeyDown(KEY_R)) {
-            this->scene->Clear();
-            this->Start();
-        }
         if (this->input->GetKeyDown(KEY_RIGHT)) {
             this->cameraNode->Translate(Vector2::RIGHT * cameraStep);
         }
         if (this->input->GetKeyDown(KEY_UP)) {
             this->cameraNode->Translate(Vector2::UP * cameraStep);
         }
+
+        // Scene state
+        if (this->input->GetKeyDown(KEY_ESCAPE)) {
+            engine_->Exit();
+        }
+        if (this->input->GetKeyDown(KEY_F5)) {
+            File saveFile(this->context_, GetSubsystem<FileSystem>()->GetProgramDir() + String(this->steps) + ".xml", FILE_WRITE);
+            this->scene->SaveXML(saveFile);
+        }
+        if (this->input->GetKeyDown(KEY_R)) {
+            this->scene->Clear();
+            this->Start();
+        }
+
+        if (false) {
+            this->worldVoxel.clear();
+            for (unsigned int x = 0; x < this->voxelResolution; ++x) {
+                for (unsigned int y = 0; y < this->voxelResolution; ++y) {
+                    auto worldPosition = Vector2(
+                        x * this->windowHeight / this->voxelResolution,
+                        y * this->windowWidth / this->voxelResolution
+                    );
+                    auto rigidBody = this->physicsWorld->GetRigidBody(Vector2(worldPosition));
+                    if (rigidBody) {
+                        auto node = rigidBody->GetNode();
+                        this->worldVoxel.push_back(std::make_pair(worldPosition, node));
+                        //std::cout << x << " " << y << " " << node->GetName().CString() << std::endl;
+                    }
+                }
+            }
+        }
         this->HandleUpdateExtra(eventType, eventData);
         this->steps++;
+    }
+
+    void HandlePhysicsPreStep(StringHash eventType, VariantMap& eventData) {
+        using namespace PhysicsPreStep;
+        auto timeStep = eventData[P_TIMESTEP].GetFloat();
+        if (this->debugEvents) {
+            std::cout << "PhysicsPreStep" << std::endl;
+            std::cout << "timeStep = " << timeStep << std::endl;
+        }
     }
 
     virtual void HandleUpdateExtra(StringHash eventType, VariantMap& eventData) {}
