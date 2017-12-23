@@ -42,9 +42,11 @@ public:
                 auto& node = this->playerNode;
                 node = this->scene->CreateChild("Player");
                 node->SetPosition(Vector2(this->windowWidth / 4.0f, windowHeight / 2.0f));
-                auto body = node->CreateComponent<RigidBody2D>();
+                auto& body = this->playerBody;
+                body = node->CreateComponent<RigidBody2D>();
                 body->SetBodyType(BT_DYNAMIC);
                 body->SetLinearDamping(4.0);
+                body->SetBullet(true);
                 auto shape = node->CreateComponent<CollisionCircle2D>();
                 shape->SetDensity(this->playerDensity);
                 shape->SetFriction(0.0f);
@@ -56,6 +58,7 @@ public:
                 node->SetPosition(Vector2(this->windowWidth * 3.0f / 4.0f, windowHeight / 2.0f));
                 auto body = node->CreateComponent<RigidBody2D>();
                 body->SetBodyType(BT_DYNAMIC);
+                body->SetBullet(true);
                 auto shape = node->CreateComponent<CollisionCircle2D>();
                 shape->SetDensity(this->playerDensity);
                 shape->SetFriction(0.0f);
@@ -72,6 +75,7 @@ public:
         this->text->SetVerticalAlignment(VA_CENTER);
     }
 private:
+    RigidBody2D *playerBody;
     Node *appleNode, *playerNode;
     Text *text;
     uint64_t score;
@@ -100,14 +104,14 @@ private:
         }
         if (player && otherNode == this->appleNode) {
             this->SetScore(this->score + 1);
-            this->appleNode->Remove();
+            //this->appleNode->Remove();
         }
     }
 
     virtual void HandleUpdateExtra(StringHash eventType, VariantMap& eventData) override {
         using namespace Update;
 
-        // Camera
+        // Camera sensor
         std::vector<Node*> results;
         auto nrays = 8u;
         auto angleStep = 360.0f / nrays;
@@ -127,14 +131,16 @@ private:
                 results.push_back(body->GetNode());
             }
         }
-        for (const auto& result : results) {
-            if (result == nullptr) {
-                std::cout << "nullptr" << std::endl;
-            } else {
-                std::cout << result->GetName().CString() << std::endl;
+        if (false) {
+            for (const auto& result : results) {
+                if (result == nullptr) {
+                    std::cout << "nullptr" << std::endl;
+                } else {
+                    std::cout << result->GetName().CString() << std::endl;
+                }
             }
+            std::cout << std::endl;
         }
-        std::cout << std::endl;
 
         // Act
         auto forceMagnitude = 4.0f * this->windowWidth * this->playerDensity;

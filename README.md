@@ -1,6 +1,6 @@
 # Urho3D Cheat
 
-Urho3D extra examples and demos. Tested in Ubuntu 17.04.
+Urho3D extra examples and demos. Tested in Ubuntu 17.10.
 
 Build and run a demo:
 
@@ -10,6 +10,26 @@ Run another demo:
 
     cd build
     ./bin/biped
+
+Modify an existing demo:
+
+    vim biped.cpp
+    cd bin
+    make
+    ./bin/biped
+
+If you modify the common header and only want to rebuild one of the example:
+
+    make biped
+    ./bin/biped
+
+Create a new example:
+
+    vim my_new_example.cpp
+    cd bin
+    cmake ..
+    make
+    ./bin/my_new_example
 
 Examples:
 
