@@ -142,6 +142,24 @@ private:
             std::cout << std::endl;
         }
 
+        Vector<std::tuple<Node*, Vector2, Vector<Vector2>>> contactList;
+        this->playerBody->GetContactList(contactList);
+        for (auto& contact : contactList) {
+            Node *node;
+            Vector2 normal;
+            Vector<Vector2> positions;
+            std::tie(node, normal, positions) = contact;
+            if (positions.Size() > 0) {
+                std::cout << this->steps << std::endl;
+                std::cout << "name: " << node->GetName().CString() << std::endl;
+                std::cout << "normal: " << normal.ToString().CString() << std::endl;
+                for (auto& position : positions) {
+                    std::cout << "position: " << position.ToString().CString() << std::endl;
+                }
+                std::cout << std::endl;
+            }
+        }
+
         // Act
         auto forceMagnitude = 4.0f * this->windowWidth * this->playerDensity;
         auto body = this->playerNode->GetComponent<RigidBody2D>();
