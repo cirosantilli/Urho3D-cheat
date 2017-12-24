@@ -31,12 +31,12 @@ public:
             } {
                 auto node = bottomWallNode->Clone();
                 node->SetName("RightWall");
-                node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
+                node->SetRotation(Quaternion(90.0f));
                 node->SetPosition(Vector2(this->windowWidth - (this->wallWidth / 2.0f), this->windowHeight / 2.0f));
             } {
                 auto node = bottomWallNode->Clone();
                 node->SetName("LeftWall");
-                node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
+                node->SetRotation(Quaternion(90.0f));
                 node->SetPosition(Vector2(this->wallWidth / 2.0f, this->windowHeight / 2.0f));
             } {
                 auto& node = this->playerNode;
@@ -46,12 +46,19 @@ public:
                 body = node->CreateComponent<RigidBody2D>();
                 body->SetBodyType(BT_DYNAMIC);
                 body->SetLinearDamping(4.0);
+                body->SetAngularDamping(4.0);
                 body->SetBullet(true);
                 auto shape = node->CreateComponent<CollisionCircle2D>();
                 shape->SetDensity(this->playerDensity);
                 shape->SetFriction(0.0f);
                 shape->SetRadius(this->playerRadius);
                 shape->SetRestitution(this->playerRestitution);
+
+                this->camera = node->CreateComponent<Camera>();
+                this->camera->SetOrthoSize(this->windowWidth);
+                this->camera->SetOrthographic(true);
+                this->viewport = SharedPtr<Viewport>(new Viewport(this->context_, this->scene, this->camera));
+                GetSubsystem<Renderer>()->SetViewport(0, this->viewport);
             } {
                 auto& node = this->appleNode;
                 node = this->scene->CreateChild("Apple");
@@ -75,10 +82,12 @@ public:
         this->text->SetVerticalAlignment(VA_CENTER);
     }
 private:
-    RigidBody2D *playerBody;
-    Node *appleNode, *playerNode;
-    Text *text;
-    uint64_t score;
+    struct ContactData {
+        ContactData(Vector2 position, float impulse) :
+            position(position), impulse(impulse) {}
+        Vector2 position;
+        float impulse;
+    };
 
     static constexpr float playerDensity = 1.0f;
     static constexpr float playerFriction = 1.0f;
@@ -88,12 +97,23 @@ private:
     static constexpr float wallLength = windowWidth;
     static constexpr float wallWidth = windowWidth / 20.0f;
 
+    static void Rotate2D(Vector2& vec, float angle) {
+        auto vec3 = Quaternion(angle) * vec;
+        vec = Vector2(vec3.x_, vec3.y_);
+    }
+
+    RigidBody2D *playerBody;
+    Node *appleNode, *playerNode;
+    Text *text;
+    uint64_t score;
+    std::map<Node*,std::map<Node*,std::vector<ContactData>>> contactDataMap;
+
     virtual void HandlePhysicsBeginContact2DExtra(StringHash eventType, VariantMap& eventData) override {
         using namespace PhysicsBeginContact2D;
         auto nodea = static_cast<Node*>(eventData[P_NODEA].GetPtr());
         auto nodeb = static_cast<Node*>(eventData[P_NODEB].GetPtr());
         Node *otherNode;
-        bool player;
+        bool player = false;
         if (nodea == this->playerNode) {
             otherNode = nodeb;
             player = true;
@@ -108,8 +128,35 @@ private:
         }
     }
 
+    virtual void HandlePhysicsUpdateContact2DExtra(StringHash eventType, VariantMap& eventData) override {
+        using namespace PhysicsUpdateContact2D;
+        auto nodea = static_cast<Node*>(eventData[P_NODEA].GetPtr());
+        auto nodeb = static_cast<Node*>(eventData[P_NODEB].GetPtr());
+        MemoryBuffer contacts(eventData[P_CONTACTS].GetBuffer());
+        while (!contacts.IsEof()) {
+            auto position = contacts.ReadVector2();
+            auto normal = contacts.ReadVector2();
+            auto distance = contacts.ReadFloat();
+            auto impulse = contacts.ReadFloat();
+            // TODO shared pointer here.
+            this->contactDataMap[nodea][nodeb].push_back(ContactData(position, impulse));
+            this->contactDataMap[nodeb][nodea].push_back(ContactData(position, impulse));
+            if (false) {
+                std::cout << "contact position " << position.ToString().CString() << std::endl;
+                std::cout << "contact normal " << normal.ToString().CString() << std::endl;
+                std::cout << "contact distance " << distance << std::endl;
+                std::cout << "contact impulse " << impulse << std::endl;
+            }
+        }
+    }
+
     virtual void HandleUpdateExtra(StringHash eventType, VariantMap& eventData) override {
         using namespace Update;
+
+        auto playerPosition = this->playerNode->GetPosition2D();
+        auto playerRotation = this->playerNode->GetRotation2D();
+        Vector2 playerForwardDirection = Vector2::UP;
+        this->Rotate2D(playerForwardDirection, playerRotation);
 
         // Camera sensor
         std::vector<Node*> results;
@@ -117,8 +164,8 @@ private:
         auto angleStep = 360.0f / nrays;
         for (auto i = 0u; i < nrays; ++i) {
             auto angle = i * angleStep;
-            auto direction3 = Quaternion(0.0f, 0.0f, angle) * Vector3::RIGHT;
-            auto direction = Vector2(direction3.x_, direction3.y_);
+            auto direction = playerForwardDirection;
+            this->Rotate2D(direction, angle);
             auto position = this->playerNode->GetPosition2D();
             auto startPoint = position + (this->playerRadius * direction);
             auto endPoint = position + (2.0f * this->windowWidth * direction);
@@ -142,39 +189,59 @@ private:
             std::cout << std::endl;
         }
 
-        Vector<std::tuple<Node*, Vector2, Vector<Vector2>>> contactList;
-        this->playerBody->GetContactList(contactList);
-        for (auto& contact : contactList) {
-            Node *node;
-            Vector2 normal;
-            Vector<Vector2> positions;
-            std::tie(node, normal, positions) = contact;
-            if (positions.Size() > 0) {
-                std::cout << this->steps << std::endl;
-                std::cout << "name: " << node->GetName().CString() << std::endl;
-                std::cout << "normal: " << normal.ToString().CString() << std::endl;
-                for (auto& position : positions) {
-                    std::cout << "position: " << position.ToString().CString() << std::endl;
+        for (auto& keyVal : contactDataMap[this->playerNode]) {
+            auto node = keyVal.first;
+            auto contactDatas = keyVal.second;
+            for (auto& contactData : contactDatas) {
+                auto contactDirection = contactData.position - playerPosition;
+                contactDirection.Normalize();
+                auto contactAngle = Atan2(playerForwardDirection.y_, playerForwardDirection.x_) - Atan2(contactDirection.y_, contactDirection.x_);
+                if (false) {
+                    std::cout << "name: " << node->GetName().CString() << std::endl;
+                    std::cout << "position: " << contactData.position.ToString().CString() << std::endl;
+                    std::cout << "angle: " << contactAngle << std::endl;
+                    std::cout << "impulse: " << contactData.impulse << std::endl;
                 }
-                std::cout << std::endl;
             }
+            std::cout << std::endl;
         }
 
         // Act
-        auto forceMagnitude = 4.0f * this->windowWidth * this->playerDensity;
-        auto body = this->playerNode->GetComponent<RigidBody2D>();
-        if (this->input->GetKeyDown(KEY_S)) {
-            body->ApplyForceToCenter(Vector2::DOWN * forceMagnitude, true);
+        auto playerBody = this->playerNode->GetComponent<RigidBody2D>();
+
+        // Linear movement
+        {
+            auto forceMagnitude = 4.0f * this->windowWidth * this->playerDensity;
+            if (this->input->GetKeyDown(KEY_S)) {
+                Vector2 direction = playerForwardDirection;
+                this->Rotate2D(direction, 180.0);
+                playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
+            }
+            if (this->input->GetKeyDown(KEY_W)) {
+                Vector2 direction = playerForwardDirection;
+                playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
+            }
+            if (this->input->GetKeyDown(KEY_A)) {
+                Vector2 direction = playerForwardDirection;
+                this->Rotate2D(direction, 90.0);
+                playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
+            }
+            if (this->input->GetKeyDown(KEY_D)) {
+                Vector2 direction = playerForwardDirection;
+                this->Rotate2D(direction, -90.0);
+                playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
+            }
         }
-        if (this->input->GetKeyDown(KEY_W)) {
-            body->ApplyForceToCenter(Vector2::UP * forceMagnitude, true);
+
+        // Rotate
+        if (this->input->GetKeyDown(KEY_Q)) {
+            playerBody->ApplyTorque(this->playerDensity, true);
         }
-        if (this->input->GetKeyDown(KEY_A)) {
-            body->ApplyForceToCenter(Vector2::LEFT * forceMagnitude, true);
+        if (this->input->GetKeyDown(KEY_E)) {
+            playerBody->ApplyTorque(-this->playerDensity, true);
         }
-        if (this->input->GetKeyDown(KEY_D)) {
-            body->ApplyForceToCenter(Vector2::RIGHT * forceMagnitude, true);
-        }
+
+        contactDataMap.clear();
     }
 
     void SetScore(uint64_t score) {

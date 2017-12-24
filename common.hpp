@@ -70,6 +70,7 @@ public:
             SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Common, HandlePostRenderUpdate));
             SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Common, HandleUpdate));
             SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Common, HandlePhysicsBeginContact2D));
+            SubscribeToEvent(E_PHYSICSUPDATECONTACT2D, URHO3D_HANDLER(Common, HandlePhysicsUpdateContact2D));
             SubscribeToEvent(E_PHYSICSPRESTEP, URHO3D_HANDLER(Common, HandlePhysicsPreStep));
             SubscribeToEvent(E_MOUSEBUTTONDOWN, URHO3D_HANDLER(Common, HandleMouseButtonDown));
             StartOnce();
@@ -93,9 +94,8 @@ public:
         this->camera = this->cameraNode->CreateComponent<Camera>();
         this->camera->SetOrthoSize(this->windowWidth);
         this->camera->SetOrthographic(true);
-        auto renderer = GetSubsystem<Renderer>();
-        SharedPtr<Viewport> viewport(new Viewport(this->context_, this->scene, this->cameraNode->GetComponent<Camera>()));
-        renderer->SetViewport(0, viewport);
+        this->viewport = SharedPtr<Viewport>(new Viewport(this->context_, this->scene, this->camera));
+        GetSubsystem<Renderer>()->SetViewport(0, this->viewport);
 
         auto dummyNode = this->scene->CreateChild("Dummy");
         this->dummyBody = dummyNode->CreateComponent<RigidBody2D>();
@@ -117,6 +117,7 @@ protected:
     ResourceCache *resourceCache;
     RigidBody2D *dummyBody;
     SharedPtr<Scene> scene;
+    SharedPtr<Viewport> viewport;
     uint64_t steps;
     // Generate robot input
     // TODO use a spacial index instead.
@@ -148,6 +149,14 @@ protected:
         this->HandlePhysicsBeginContact2DExtra(eventType, eventData);
     }
 
+    virtual void HandlePhysicsBeginContact2DExtra(StringHash eventType, VariantMap& eventData) {}
+
+    void HandlePhysicsUpdateContact2D(StringHash eventType, VariantMap& eventData) {
+        this->HandlePhysicsUpdateContact2DExtra(eventType, eventData);
+    }
+
+    virtual void HandlePhysicsUpdateContact2DExtra(StringHash eventType, VariantMap& eventData) {}
+
     void HandleMouseButtonDown(StringHash eventType, VariantMap& eventData) {
         auto mousePositionWorld = this->GetMousePositionWorld();
         auto rigidBody = this->physicsWorld->GetRigidBody(mousePositionWorld);
@@ -162,8 +171,6 @@ protected:
         SubscribeToEvent(E_MOUSEMOVE, URHO3D_HANDLER(Common, HandleMouseMove));
         SubscribeToEvent(E_MOUSEBUTTONUP, URHO3D_HANDLER(Common, HandleMouseButtonUp));
     }
-
-    virtual void HandlePhysicsBeginContact2DExtra(StringHash eventType, VariantMap& eventData) {}
 
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
         this->physicsWorld->DrawDebugGeometry();
