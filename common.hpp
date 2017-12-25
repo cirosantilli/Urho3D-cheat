@@ -22,6 +22,7 @@
 #include <Urho3D/IO/MemoryBuffer.h>
 #include <Urho3D/Input/Input.h>
 #include <Urho3D/Input/InputEvents.h>
+#include <Urho3D/Math/StringHash.h>
 #include <Urho3D/Physics/PhysicsEvents.h>
 #include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/Scene/Node.h>

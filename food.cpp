@@ -6,6 +6,8 @@ One agent eats apples and gets happy.
 
 using namespace Urho3D;
 
+static const StringHash IS_FOOD("IsFood");
+
 class Main : public Common {
 public:
     Main(Context* context) : Common(context) {}
@@ -60,17 +62,8 @@ public:
                 this->viewport = SharedPtr<Viewport>(new Viewport(this->context_, this->scene, this->camera));
                 GetSubsystem<Renderer>()->SetViewport(0, this->viewport);
             } {
-                auto& node = this->appleNode;
-                node = this->scene->CreateChild("Apple");
-                node->SetPosition(Vector2(this->windowWidth * 3.0f / 4.0f, windowHeight / 2.0f));
-                auto body = node->CreateComponent<RigidBody2D>();
-                body->SetBodyType(BT_DYNAMIC);
-                body->SetBullet(true);
-                auto shape = node->CreateComponent<CollisionCircle2D>();
-                shape->SetDensity(this->playerDensity);
-                shape->SetFriction(0.0f);
-                shape->SetRadius(this->playerRadius);
-                shape->SetRestitution(this->playerRestitution);
+                this->CreateAppleNode(Vector2(this->windowWidth * 3.0f / 4.0f, windowHeight / 2.0f));
+                this->CreateAppleNode(Vector2(windowHeight / 2.0f, this->windowWidth * 3.0f / 4.0f));
             }
         }
     }
@@ -98,15 +91,31 @@ private:
     static constexpr float wallWidth = windowWidth / 20.0f;
 
     static void Rotate2D(Vector2& vec, float angle) {
+        static std::string s("IsFood");
         auto vec3 = Quaternion(angle) * vec;
         vec = Vector2(vec3.x_, vec3.y_);
     }
 
     RigidBody2D *playerBody;
-    Node *appleNode, *playerNode;
+    Node *playerNode;
     Text *text;
     uint64_t score;
     std::map<Node*,std::map<Node*,std::vector<ContactData>>> contactDataMap;
+
+    virtual void CreateAppleNode(const Vector2& position) {
+        auto node = this->scene->CreateChild("Apple");
+        node->SetPosition(position);
+        node->SetVar(IS_FOOD, true);
+        auto body = node->CreateComponent<RigidBody2D>();
+        body->SetBodyType(BT_DYNAMIC);
+        body->SetBullet(true);
+        auto shape = node->CreateComponent<CollisionCircle2D>();
+        shape->SetDensity(this->playerDensity);
+        shape->SetFriction(0.0f);
+        shape->SetRadius(this->playerRadius);
+        shape->SetRestitution(this->playerRestitution);
+        shape->SetTrigger(true);
+    }
 
     virtual void HandlePhysicsBeginContact2DExtra(StringHash eventType, VariantMap& eventData) override {
         using namespace PhysicsBeginContact2D;
@@ -122,9 +131,10 @@ private:
             otherNode = nodea;
             player = true;
         }
-        if (player && otherNode == this->appleNode) {
+        if (player && otherNode->GetVar(IS_FOOD).GetBool()) {
             this->SetScore(this->score + 1);
-            //this->appleNode->Remove();
+            otherNode->Remove();
+            this->CreateAppleNode(Vector2(Random(), Random()) * this->windowWidth);
         }
     }
 
@@ -146,6 +156,7 @@ private:
                 std::cout << "contact normal " << normal.ToString().CString() << std::endl;
                 std::cout << "contact distance " << distance << std::endl;
                 std::cout << "contact impulse " << impulse << std::endl;
+                std::cout << std::endl;
             }
         }
     }
