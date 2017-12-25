@@ -159,9 +159,9 @@ private:
         this->Rotate2D(playerForwardDirection, playerRotation);
 
         // Camera sensor
-        std::vector<Node*> results;
+        std::vector<PhysicsRaycastResult2D> raycastResults;
         auto nrays = 8u;
-        auto angleStep = 360.0f / nrays;
+        auto angleStep = -360.0f / nrays;
         for (auto i = 0u; i < nrays; ++i) {
             auto angle = i * angleStep;
             auto direction = playerForwardDirection;
@@ -171,19 +171,15 @@ private:
             auto endPoint = position + (2.0f * this->windowWidth * direction);
             PhysicsRaycastResult2D result;
             this->physicsWorld->RaycastSingle(result, startPoint, endPoint);
-            auto body = result.body_;
-            if (nullptr == body) {
-                results.push_back(nullptr);
-            } else {
-                results.push_back(body->GetNode());
-            }
+            raycastResults.push_back(result);
         }
         if (false) {
-            for (const auto& result : results) {
-                if (result == nullptr) {
+            for (const auto& result : raycastResults) {
+                auto body = result.body_;
+                if (body == nullptr) {
                     std::cout << "nullptr" << std::endl;
                 } else {
-                    std::cout << result->GetName().CString() << std::endl;
+                    std::cout << body->GetNode()->GetName().CString() << " " << result.distance_ << std::endl;
                 }
             }
             std::cout << std::endl;
@@ -201,9 +197,9 @@ private:
                     std::cout << "position: " << contactData.position.ToString().CString() << std::endl;
                     std::cout << "angle: " << contactAngle << std::endl;
                     std::cout << "impulse: " << contactData.impulse << std::endl;
+                    std::cout << std::endl;
                 }
             }
-            std::cout << std::endl;
         }
 
         // Act
