@@ -10,3 +10,5 @@ Patchlist:
 -   Vector2D
     - Rotate2D
     - Angle2
+-   Box2D exposals:
+    - fixture::getAABB

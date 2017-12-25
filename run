@@ -1,19 +1,5 @@
 #!/usr/bin/env bash
-
 set -e
-
-# Build Urho3D
-cd Urho3D
-mkdir -p cmake-build-make
-cd cmake-build-make
-cmake -DCMAKE_BUILD_TYPE=Debug -DURHO3D_LIB_TYPE=SHARED ..
-make -j`nproc`
-sudo make install
-
-# Build our demos and run one of them.
-cd ../..
-mkdir -p build
-cd build
-cmake -DCMAKE_BUILD_TYPE=Debug ..
-make -j`nproc`
+./build-urho
+./build-demos
 ./bin/collision

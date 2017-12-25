@@ -26,10 +26,12 @@ If you modify the common header and only want to rebuild one of the example:
 Create a new example:
 
     vim my_new_example.cpp
-    cd bin
-    cmake ..
-    make
-    ./bin/my_new_example
+    ./build-demos
+
+Hack up Urho and test it out on a demo:
+
+    ./build-urho
+    ./build-demos
 
 Examples:
 

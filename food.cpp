@@ -62,8 +62,8 @@ public:
                 this->viewport = SharedPtr<Viewport>(new Viewport(this->context_, this->scene, this->camera));
                 GetSubsystem<Renderer>()->SetViewport(0, this->viewport);
             } {
-                this->CreateAppleNode(Vector2(this->windowWidth * 3.0f / 4.0f, windowHeight / 2.0f));
-                this->CreateAppleNode(Vector2(windowHeight / 2.0f, this->windowWidth * 3.0f / 4.0f));
+                this->CreateRandomAppleNode();
+                this->CreateRandomAppleNode();
             }
         }
     }
@@ -102,7 +102,7 @@ private:
     uint64_t score;
     std::map<Node*,std::map<Node*,std::vector<ContactData>>> contactDataMap;
 
-    virtual void CreateAppleNode(const Vector2& position) {
+    virtual bool CreateAppleNode(const Vector2& position) {
         auto node = this->scene->CreateChild("Apple");
         node->SetPosition(position);
         node->SetVar(IS_FOOD, true);
@@ -110,11 +110,34 @@ private:
         body->SetBodyType(BT_DYNAMIC);
         body->SetBullet(true);
         auto shape = node->CreateComponent<CollisionCircle2D>();
-        shape->SetDensity(this->playerDensity);
+        // For 0.0 the player is still pushed back when eating.
+        // SetTrigger sets the sensor property, but Urho then ignores it on the AABB query.
+        shape->SetDensity(1e-06f);
         shape->SetFriction(0.0f);
         shape->SetRadius(this->playerRadius);
         shape->SetRestitution(this->playerRestitution);
-        shape->SetTrigger(true);
+        // TODO use triggers instead of aabb to be more precise.
+        // But is it possible without stepping the simulation?
+        auto aabb = shape->GetFixture()->GetAABB(0);
+        auto lowerBound = Vector2(aabb.lowerBound.x, aabb.lowerBound.y);
+        auto upperBound = Vector2(aabb.upperBound.x, aabb.upperBound.y);
+        PODVector<RigidBody2D*> rigidBodies;
+        this->physicsWorld->GetRigidBodies(rigidBodies, Rect(lowerBound, upperBound));
+        if (false) {
+            for (const auto& body : rigidBodies) {
+                std::cout << body->GetNode()->GetName().CString() << std::endl;
+            }
+            std::cout << std::endl;
+        }
+        if (rigidBodies.Size() > 1) {
+            node->Remove();
+            return false;
+        }
+        return true;
+    }
+
+    virtual void CreateRandomAppleNode() {
+        while (!this->CreateAppleNode(Vector2(Random(), Random()) * this->windowWidth));
     }
 
     virtual void HandlePhysicsBeginContact2DExtra(StringHash eventType, VariantMap& eventData) override {
@@ -134,7 +157,7 @@ private:
         if (player && otherNode->GetVar(IS_FOOD).GetBool()) {
             this->SetScore(this->score + 1);
             otherNode->Remove();
-            this->CreateAppleNode(Vector2(Random(), Random()) * this->windowWidth);
+            this->CreateRandomAppleNode();
         }
     }
 
@@ -196,10 +219,10 @@ private:
             std::cout << std::endl;
         }
 
-        for (auto& keyVal : contactDataMap[this->playerNode]) {
+        for (const auto& keyVal : contactDataMap[this->playerNode]) {
             auto node = keyVal.first;
             auto contactDatas = keyVal.second;
-            for (auto& contactData : contactDatas) {
+            for (const auto& contactData : contactDatas) {
                 auto contactDirection = contactData.position - playerPosition;
                 contactDirection.Normalize();
                 auto contactAngle = Atan2(playerForwardDirection.y_, playerForwardDirection.x_) - Atan2(contactDirection.y_, contactDirection.x_);
