@@ -55,12 +55,8 @@ public:
                 shape->SetFriction(0.0f);
                 shape->SetRadius(this->playerRadius);
                 shape->SetRestitution(this->playerRestitution);
-
-                this->camera = node->CreateComponent<Camera>();
-                this->camera->SetOrthoSize(this->windowWidth);
-                this->camera->SetOrthographic(true);
-                this->viewport = SharedPtr<Viewport>(new Viewport(this->context_, this->scene, this->camera));
-                GetSubsystem<Renderer>()->SetViewport(0, this->viewport);
+                this->CreateCamera(node);
+                this->SetSprite(node, shape, this->playerSprite);
             } {
                 this->CreateRandomAppleNode();
                 this->CreateRandomAppleNode();
@@ -68,11 +64,12 @@ public:
         }
     }
     virtual void StartOnce() override {
-        // Score
         this->text = this->GetSubsystem<UI>()->GetRoot()->CreateChild<Text>();
-        this->text->SetFont(this->resourceCache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
-        this->text->SetHorizontalAlignment(HA_CENTER);
-        this->text->SetVerticalAlignment(VA_CENTER);
+        this->text->SetFont(this->resourceCache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 20);
+        this->text->SetAlignment(HA_RIGHT, VA_TOP);
+        this->text->SetPosition(-10, 10);
+        this->playerSprite = this->resourceCache->GetResource<Sprite2D>("./baby-face.png");
+        this->appleSprite = this->resourceCache->GetResource<Sprite2D>("./shiny-apple.png");
     }
 private:
     struct ContactData {
@@ -96,11 +93,12 @@ private:
         vec = Vector2(vec3.x_, vec3.y_);
     }
 
-    RigidBody2D *playerBody;
     Node *playerNode;
+    RigidBody2D *playerBody;
+    Sprite2D *appleSprite, *playerSprite;
     Text *text;
-    uint64_t score;
     std::map<Node*,std::map<Node*,std::vector<ContactData>>> contactDataMap;
+    uint64_t score;
 
     virtual bool CreateAppleNode(const Vector2& position) {
         auto node = this->scene->CreateChild("Apple");
@@ -118,11 +116,12 @@ private:
         shape->SetRestitution(this->playerRestitution);
         // TODO use triggers instead of aabb to be more precise.
         // But is it possible without stepping the simulation?
-        auto aabb = shape->GetFixture()->GetAABB(0);
-        auto lowerBound = Vector2(aabb.lowerBound.x, aabb.lowerBound.y);
-        auto upperBound = Vector2(aabb.upperBound.x, aabb.upperBound.y);
+        auto b2Aabb = shape->GetFixture()->GetAABB(0);
+        auto lowerBound = Vector2(b2Aabb.lowerBound.x, b2Aabb.lowerBound.y);
+        auto upperBound = Vector2(b2Aabb.upperBound.x, b2Aabb.upperBound.y);
         PODVector<RigidBody2D*> rigidBodies;
-        this->physicsWorld->GetRigidBodies(rigidBodies, Rect(lowerBound, upperBound));
+        auto aabb = Rect(lowerBound, upperBound);
+        this->physicsWorld->GetRigidBodies(rigidBodies, aabb);
         if (false) {
             for (const auto& body : rigidBodies) {
                 std::cout << body->GetNode()->GetName().CString() << std::endl;
@@ -133,7 +132,20 @@ private:
             node->Remove();
             return false;
         }
+        this->SetSprite(node, shape, this->appleSprite);
         return true;
+    }
+
+    void SetSprite(Node *node, CollisionShape2D *shape, Sprite2D *sprite) {
+        auto position = node->GetPosition2D();
+        auto b2Aabb = shape->GetFixture()->GetAABB(0);
+        auto lowerBound = Vector2(b2Aabb.lowerBound.x, b2Aabb.lowerBound.y);
+        auto upperBound = Vector2(b2Aabb.upperBound.x, b2Aabb.upperBound.y);
+        PODVector<RigidBody2D*> rigidBodies;
+        auto aabb = Rect(lowerBound, upperBound);
+        auto staticSprite = node->CreateComponent<StaticSprite2D>();
+        staticSprite->SetSprite(sprite);
+        staticSprite->SetDrawRect(aabb - Rect(position, position));
     }
 
     virtual void CreateRandomAppleNode() {

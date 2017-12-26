@@ -68,6 +68,7 @@ public:
             this->input = this->GetSubsystem<Input>();
             this->input->SetMouseVisible(true);
             this->resourceCache = GetSubsystem<ResourceCache>();
+            this->resourceCache->AddResourceDir(GetParentPath(__FILE__));
             SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Common, HandlePostRenderUpdate));
             SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Common, HandleUpdate));
             SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Common, HandlePhysicsBeginContact2D));
@@ -92,11 +93,7 @@ public:
         // Camera
         this->cameraNode = this->scene->CreateChild("Camera");
         this->cameraNode->SetPosition(Vector3(this->windowWidth / 2.0f, this->windowHeight / 2.0f, -1.0f));
-        this->camera = this->cameraNode->CreateComponent<Camera>();
-        this->camera->SetOrthoSize(this->windowWidth);
-        this->camera->SetOrthographic(true);
-        this->viewport = SharedPtr<Viewport>(new Viewport(this->context_, this->scene, this->camera));
-        GetSubsystem<Renderer>()->SetViewport(0, this->viewport);
+        this->CreateCamera(this->cameraNode);
 
         auto dummyNode = this->scene->CreateChild("Dummy");
         this->dummyBody = dummyNode->CreateComponent<RigidBody2D>();
@@ -108,6 +105,7 @@ public:
 
         this->StartExtra();
     }
+
     virtual void Stop() override {}
 protected:
     bool debugEvents;
@@ -134,6 +132,14 @@ protected:
     static constexpr float cameraSpeed = 1.0;
     static constexpr float cameraZoomSpeed = 0.5f;
     static constexpr unsigned int voxelResolution = 100;
+
+    void CreateCamera(Node *node) {
+        this->camera = node->CreateComponent<Camera>();
+        this->camera->SetOrthoSize(this->windowWidth);
+        this->camera->SetOrthographic(true);
+        this->viewport = SharedPtr<Viewport>(new Viewport(this->context_, this->scene, this->camera));
+        GetSubsystem<Renderer>()->SetViewport(0, this->viewport);
+    }
 
     Vector2 GetMousePositionWorld() {
         auto graphics = GetSubsystem<Graphics>();
