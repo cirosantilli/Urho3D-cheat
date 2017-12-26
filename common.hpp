@@ -93,7 +93,7 @@ public:
         // Camera
         this->cameraNode = this->scene->CreateChild("Camera");
         this->cameraNode->SetPosition(Vector3(this->windowWidth / 2.0f, this->windowHeight / 2.0f, -1.0f));
-        this->CreateCamera(this->cameraNode);
+        this->CreateCamera(this->cameraNode, this->windowWidth);
 
         auto dummyNode = this->scene->CreateChild("Dummy");
         this->dummyBody = dummyNode->CreateComponent<RigidBody2D>();
@@ -133,9 +133,9 @@ protected:
     static constexpr float cameraZoomSpeed = 0.5f;
     static constexpr unsigned int voxelResolution = 100;
 
-    void CreateCamera(Node *node) {
+    void CreateCamera(Node *node, float orthoSize) {
         this->camera = node->CreateComponent<Camera>();
-        this->camera->SetOrthoSize(this->windowWidth);
+        this->camera->SetOrthoSize(orthoSize);
         this->camera->SetOrthographic(true);
         this->viewport = SharedPtr<Viewport>(new Viewport(this->context_, this->scene, this->camera));
         GetSubsystem<Renderer>()->SetViewport(0, this->viewport);
@@ -151,6 +151,9 @@ protected:
         auto worldPoint = this->camera->ScreenToWorldPoint(screenPoint);
         return Vector2(worldPoint.x_, worldPoint.y_);
     }
+
+    virtual float GetWindowHeight() const { return this->GetWindowWidth(); }
+    virtual float GetWindowWidth() const { return 10.0f; }
 
     void HandlePhysicsBeginContact2D(StringHash eventType, VariantMap& eventData) {
         this->HandlePhysicsBeginContact2DExtra(eventType, eventData);
@@ -246,6 +249,7 @@ protected:
             for (unsigned int x = 0; x < this->voxelResolution; ++x) {
                 for (unsigned int y = 0; y < this->voxelResolution; ++y) {
                     auto worldPosition = Vector2(
+                        // TODO override windowWidth and use that here.
                         x * this->windowHeight / this->voxelResolution,
                         y * this->windowWidth / this->voxelResolution
                     );

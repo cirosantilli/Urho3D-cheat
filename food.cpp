@@ -21,29 +21,29 @@ public:
             RigidBody2D *wallBody;
             {
                 bottomWallNode = this->scene->CreateChild("BottomWall");
-                bottomWallNode->SetPosition(Vector2(this->windowWidth / 2.0, wallWidth / 2.0f));
+                bottomWallNode->SetPosition(Vector2(this->GetWindowWidth() / 2.0, this->wallWidth / 2.0f));
                 wallBody = bottomWallNode->CreateComponent<RigidBody2D>();
                 auto shape = bottomWallNode->CreateComponent<CollisionBox2D>();
-                shape->SetSize(Vector2(wallLength, wallWidth));
+                shape->SetSize(Vector2(this->GetWallLength(), this->wallWidth));
                 shape->SetRestitution(0.0);
             } {
                 auto node = bottomWallNode->Clone();
                 node->SetName("TopWall");
-                node->SetPosition(Vector2(this->windowWidth / 2.0f, this->windowHeight - (this->wallWidth / 2.0f)));
+                node->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() - (this->wallWidth / 2.0f)));
             } {
                 auto node = bottomWallNode->Clone();
                 node->SetName("RightWall");
                 node->SetRotation(Quaternion(90.0f));
-                node->SetPosition(Vector2(this->windowWidth - (this->wallWidth / 2.0f), this->windowHeight / 2.0f));
+                node->SetPosition(Vector2(this->GetWindowWidth() - (this->wallWidth / 2.0f), this->GetWindowHeight() / 2.0f));
             } {
                 auto node = bottomWallNode->Clone();
                 node->SetName("LeftWall");
                 node->SetRotation(Quaternion(90.0f));
-                node->SetPosition(Vector2(this->wallWidth / 2.0f, this->windowHeight / 2.0f));
+                node->SetPosition(Vector2(this->wallWidth / 2.0f, this->GetWindowHeight() / 2.0f));
             } {
                 auto& node = this->playerNode;
                 node = this->scene->CreateChild("Player");
-                node->SetPosition(Vector2(this->windowWidth / 4.0f, windowHeight / 2.0f));
+                node->SetPosition(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                 auto& body = this->playerBody;
                 body = node->CreateComponent<RigidBody2D>();
                 body->SetBodyType(BT_DYNAMIC);
@@ -55,11 +55,12 @@ public:
                 shape->SetFriction(0.0f);
                 shape->SetRadius(this->playerRadius);
                 shape->SetRestitution(this->playerRestitution);
-                this->CreateCamera(node);
+                this->CreateCamera(node, 20.0f * playerRadius);
                 this->SetSprite(node, shape, this->playerSprite);
             } {
-                this->CreateRandomAppleNode();
-                this->CreateRandomAppleNode();
+                unsigned int napples = this->GetWindowWidth() * this->GetWindowHeight() / (100.0f * this->playerRadius * this->playerRadius);
+                for (auto i = 0u; i < napples; ++i)
+                    this->CreateRandomAppleNode();
             }
         }
     }
@@ -81,11 +82,12 @@ private:
 
     static constexpr float playerDensity = 1.0f;
     static constexpr float playerFriction = 1.0f;
-    static constexpr float playerLength = windowHeight / 4.0f;
-    static constexpr float playerRadius = windowWidth / 20.0f;
+    static constexpr float playerRadius = 1.0f;
     static constexpr float playerRestitution = 0.2f;
-    static constexpr float wallLength = windowWidth;
-    static constexpr float wallWidth = windowWidth / 20.0f;
+    static constexpr float wallWidth = playerRadius;
+    virtual float GetWallLength() const { return this->GetWindowWidth(); }
+    virtual float GetWindowHeight() const override { return this->GetWindowWidth(); }
+    virtual float GetWindowWidth() const override { return 100.0f; }
 
     static void Rotate2D(Vector2& vec, float angle) {
         static std::string s("IsFood");
@@ -149,7 +151,7 @@ private:
     }
 
     virtual void CreateRandomAppleNode() {
-        while (!this->CreateAppleNode(Vector2(Random(), Random()) * this->windowWidth));
+        while (!this->CreateAppleNode(Vector2(Random(), Random()) * this->GetWindowWidth()));
     }
 
     virtual void HandlePhysicsBeginContact2DExtra(StringHash eventType, VariantMap& eventData) override {
@@ -214,7 +216,7 @@ private:
             this->Rotate2D(direction, angle);
             auto position = this->playerNode->GetPosition2D();
             auto startPoint = position + (this->playerRadius * direction);
-            auto endPoint = position + (2.0f * this->windowWidth * direction);
+            auto endPoint = position + (2.0f * this->GetWindowWidth() * direction);
             PhysicsRaycastResult2D result;
             this->physicsWorld->RaycastSingle(result, startPoint, endPoint);
             raycastResults.push_back(result);
@@ -250,10 +252,11 @@ private:
 
         // Act
         auto playerBody = this->playerNode->GetComponent<RigidBody2D>();
+        auto playerMass = this->playerDensity * this->playerRadius;
 
         // Linear movement
         {
-            auto forceMagnitude = 4.0f * this->windowWidth * this->playerDensity;
+            auto forceMagnitude = 500.0f * playerMass;
             if (this->input->GetKeyDown(KEY_S)) {
                 Vector2 direction = playerForwardDirection;
                 this->Rotate2D(direction, 180.0);
@@ -276,11 +279,12 @@ private:
         }
 
         // Rotate
+        auto torqueMagnitude = 20.0f * playerMass;
         if (this->input->GetKeyDown(KEY_Q)) {
-            playerBody->ApplyTorque(this->playerDensity, true);
+            playerBody->ApplyTorque(torqueMagnitude, true);
         }
         if (this->input->GetKeyDown(KEY_E)) {
-            playerBody->ApplyTorque(-this->playerDensity, true);
+            playerBody->ApplyTorque(-torqueMagnitude, true);
         }
 
         contactDataMap.clear();
