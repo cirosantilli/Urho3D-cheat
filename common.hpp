@@ -170,18 +170,13 @@ protected:
     virtual void HandlePhysicsBeginContact2DExtra(StringHash eventType, VariantMap& eventData) {}
 
     void HandleKeyDown(StringHash eventType, VariantMap& eventData) {
-        // Scene state
-        if (this->input->GetKeyDown(KEY_ESCAPE)) {
+        using namespace KeyDown;
+        auto key = eventData[P_KEY].GetInt();
+        if (key == KEY_ESCAPE) {
             engine_->Exit();
-        }
-        // Restart the scene to the initial state.
-        if (this->input->GetKeyDown(KEY_F5)) {
-            this->scene->Clear();
-            this->ui->Clear();
-            this->Start();
-        }
-        // Save current scene to XML.
-        if (this->input->GetKeyDown(KEY_F6)) {
+        } else if (key == KEY_F5) {
+            this->Reset();
+        } else if (key == KEY_F6) {
             File saveFile(this->context_, GetSubsystem<FileSystem>()->GetProgramDir() + String(this->steps) + ".xml", FILE_WRITE);
             this->scene->SaveXML(saveFile);
         }
@@ -293,6 +288,12 @@ protected:
     }
 
     virtual void HandleUpdateExtra(StringHash eventType, VariantMap& eventData) {}
+
+    void Reset() {
+        this->scene->Clear();
+        this->ui->Clear();
+        this->Start();
+    }
 
     virtual void StartExtra() {}
 

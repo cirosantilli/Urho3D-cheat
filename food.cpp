@@ -10,20 +10,10 @@ static const StringHash IS_FOOD("IsFood");
 
 class Main : public Common {
 public:
-    Main(Context* context) : Common(context) {}
+    Main(Context* context) : Common(context) {
+        sceneIdx = 0;
+    }
     virtual void StartExtra() override {
-        // CLI arguments.
-        String scene;
-        auto args = GetArguments();
-        decltype(args.Size()) i = 0;
-        while (i < args.Size()) {
-            auto& arg = args[i];
-            if (arg == "-zscene") {
-                ++i;
-                scene = args[i].CString();
-            }
-            ++i;
-        }
 
         // Application state.
         this->text = this->ui->GetRoot()->CreateChild<Text>();
@@ -34,38 +24,101 @@ public:
 
         // Scene
         {
-            // Apple
-            //if (scene == "apple-good")
-            {
-                this->SetTitle("Apples are good");
-                this->windowWidth = 20.0f * this->playerRadius;
-                this->CreateWallNodes();
-                {
-                    auto& node = this->playerNode;
-                    node = this->scene->CreateChild("Player");
-                    node->SetPosition(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
-                    auto& body = this->playerBody;
-                    body = node->CreateComponent<RigidBody2D>();
-                    body->SetBodyType(BT_DYNAMIC);
-                    body->SetLinearDamping(4.0);
-                    body->SetAngularDamping(4.0);
-                    body->SetBullet(true);
-                    auto shape = node->CreateComponent<CollisionCircle2D>();
-                    shape->SetDensity(this->playerDensity);
-                    shape->SetFriction(0.0f);
-                    shape->SetRadius(this->playerRadius);
-                    shape->SetRestitution(this->playerRestitution);
-                    this->CreateCamera(node, 20.0f * playerRadius);
-                    this->SetSprite(node, shape, this->playerSprite);
-                } {
+            switch (sceneIdx) {
+                default:
+                case 0: {
+                    this->SetTitle("Apples are good");
+                    this->windowWidth = 20.0f * this->playerRadius;
+                    this->CreateWallNodes();
+                    this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     unsigned int napples = this->GetWindowWidth() * this->GetWindowHeight() / (100.0f * this->playerRadius * this->playerRadius);
                     for (auto i = 0u; i < napples; ++i)
                         this->CreateRandomAppleNode();
-                }
+                } break;
+                case 1: {
+                    this->SetTitle("Curiosity is necessary");
+                    this->windowWidth = 20.0f * this->playerRadius;
+                    this->CreateWallNodes();
+                    this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    this->CreateAppleNode(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    {
+                        auto node = this->scene->CreateChild("SeparatorWall");
+                        node->SetPosition(Vector2(this->GetWindowWidth() / 2.0, this->GetWindowHeight() / 2.0f));
+                        node->SetRotation(Quaternion(90.0f));
+                        node->CreateComponent<RigidBody2D>();
+                        auto shape = node->CreateComponent<CollisionBox2D>();
+                        shape->SetSize(Vector2(this->GetWindowWidth() / 2.0f, this->wallWidth));
+                        shape->SetRestitution(0.0);
+                    }
+
+                } break;
+                case 2: {
+                    this->SetTitle("Topology");
+                    this->windowWidth = 20.0f * this->playerRadius;
+                    this->CreateWallNodes();
+                    this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    this->CreateAppleNode(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    {
+                        auto node = this->scene->CreateChild("SeparatorWall");
+                        node->SetPosition(Vector2(this->GetWindowWidth() / 2.0, 3.0f * this->GetWindowHeight() / 8.0f));
+                        node->SetRotation(Quaternion(90.0f));
+                        node->CreateComponent<RigidBody2D>();
+                        auto shape = node->CreateComponent<CollisionBox2D>();
+                        shape->SetSize(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->wallWidth));
+                        shape->SetRestitution(0.0);
+                    }
+                } break;
+                case 3: {
+                    this->SetTitle("Out of reach");
+                    this->windowWidth = 20.0f * this->playerRadius;
+                    this->CreateWallNodes();
+                    this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    this->CreateAppleNode(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    auto bottomSeparatorWallNode = this->scene->CreateChild("SeparatorWallBottom");
+                    {
+                        auto& node = bottomSeparatorWallNode;
+                        node->SetPosition(Vector2(
+                            this->GetWindowWidth() / 2.0,
+                            3.0f * this->GetWindowHeight() / 8.0f - this->playerRadius / 2.0f
+                        ));
+                        node->SetRotation(Quaternion(90.0f));
+                        node->CreateComponent<RigidBody2D>();
+                        auto shape = node->CreateComponent<CollisionBox2D>();
+                        shape->SetSize(Vector2(this->GetWindowWidth() / 4.0f, this->wallWidth));
+                        shape->SetRestitution(0.0);
+                    } {
+                        auto node = bottomSeparatorWallNode->Clone();
+                        node->SetName("SeparatorWallTop");
+                        node->Translate(Vector2(2.0f * this->GetWindowHeight() / 8.0f + this->playerRadius, 0.0f));
+                    }
+                } break;
             }
         }
     }
     virtual void StartOnce() override {
+        // CLI arguments.
+        String sceneName;
+        auto args = GetArguments();
+        decltype(args.Size()) i = 0;
+        while (i < args.Size()) {
+            auto& arg = args[i];
+            if (arg == "-zscene") {
+                ++i;
+                sceneName = args[i].CString();
+            }
+            ++i;
+        }
+        this->sceneNameToIdx = {
+            {"apple-good", 0},
+            {"curiosity", 1},
+            {"topology", 2},
+            {"out-of-reach", 3}
+        };
+        auto it = sceneNameToIdx.find(sceneName);
+        if (it != sceneNameToIdx.end()) {
+            sceneIdx = it->second;
+        }
+
         this->playerSprite = this->resourceCache->GetResource<Sprite2D>("./baby-face.png");
         this->appleSprite = this->resourceCache->GetResource<Sprite2D>("./shiny-apple.png");
     }
@@ -82,7 +135,6 @@ private:
     static constexpr float playerRadius = 1.0f;
     static constexpr float playerRestitution = 0.2f;
     static constexpr float wallWidth = playerRadius;
-    float windowWidth;
 
     static void Rotate2D(Vector2& vec, float angle) {
         auto vec3 = Quaternion(angle) * vec;
@@ -93,8 +145,30 @@ private:
     RigidBody2D *playerBody;
     Sprite2D *appleSprite, *playerSprite;
     Text *text;
-    std::map<Node*,std::map<Node*,std::vector<ContactData>>> contactDataMap;
     float score;
+    float windowWidth;
+    size_t sceneIdx;
+    std::map<Node*,std::map<Node*,std::vector<ContactData>>> contactDataMap;
+    std::map<String,int> sceneNameToIdx;
+
+    virtual bool CreatePlayerNode(const Vector2& position, float rotation = 0.0f) {
+        auto& node = this->playerNode;
+        node = this->scene->CreateChild("Player");
+        node->SetPosition(position);
+        auto& body = this->playerBody;
+        body = node->CreateComponent<RigidBody2D>();
+        body->SetBodyType(BT_DYNAMIC);
+        body->SetLinearDamping(4.0);
+        body->SetAngularDamping(4.0);
+        body->SetBullet(true);
+        auto shape = node->CreateComponent<CollisionCircle2D>();
+        shape->SetDensity(this->playerDensity);
+        shape->SetFriction(0.0f);
+        shape->SetRadius(this->playerRadius);
+        shape->SetRestitution(this->playerRestitution);
+        this->CreateCamera(node, 20.0f * playerRadius);
+        this->SetSprite(node, shape, this->playerSprite);
+    }
 
     virtual bool CreateAppleNode(const Vector2& position, float rotation = 0.0f) {
         auto node = this->scene->CreateChild("Apple");
@@ -142,7 +216,7 @@ private:
         {
             bottomWallNode = this->scene->CreateChild("BottomWall");
             bottomWallNode->SetPosition(Vector2(this->GetWindowWidth() / 2.0, this->wallWidth / 2.0f));
-            auto wallBody = bottomWallNode->CreateComponent<RigidBody2D>();
+            bottomWallNode->CreateComponent<RigidBody2D>();
             auto shape = bottomWallNode->CreateComponent<CollisionBox2D>();
             shape->SetSize(Vector2(this->GetWindowWidth(), this->wallWidth));
             shape->SetRestitution(0.0);
@@ -164,6 +238,16 @@ private:
     }
 
     virtual float GetWindowWidth() const override { return this->windowWidth; }
+
+    virtual void HandleKeyDownExtra(StringHash eventType, VariantMap& eventData) override {
+        using namespace KeyDown;
+        auto key = eventData[P_KEY].GetInt();
+        if (key == KEY_N) {
+            // Next scenario.
+            sceneIdx = (sceneIdx + 1) % this->sceneNameToIdx.size();
+            this->Reset();
+        }
+    }
 
     virtual void HandlePhysicsBeginContact2DExtra(StringHash eventType, VariantMap& eventData) override {
         using namespace PhysicsBeginContact2D;
@@ -299,7 +383,9 @@ private:
             playerBody->ApplyTorque(-torqueMagnitude, true);
         }
 
-        //this->SetScore(this->score - 0.001f);
+        if (false) {
+            this->SetScore(this->score - 0.001f);
+        }
         contactDataMap.clear();
     }
 
