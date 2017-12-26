@@ -14,10 +14,9 @@ public:
     Main(Context* context) : Common(context) {}
     virtual void StartExtra() override {
         SubscribeToEvent(E_KEYUP, URHO3D_HANDLER(Main, HandleKeyUp));
-        SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Main, HandleKeyDown));
     }
 private:
-    void HandleKeyDown(StringHash /*eventType*/, VariantMap& eventData) {
+    void HandleKeyDownExtra(StringHash /*eventType*/, VariantMap& eventData) {
         using namespace KeyDown;
         auto key = eventData[P_KEY].GetInt();
         if (key == KEY_SPACE) {

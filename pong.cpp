@@ -18,6 +18,10 @@ public:
     Main(Context* context) : Common(context) {}
     virtual void StartExtra() override {
         // Application state.
+        this->text = this->GetSubsystem<UI>()->GetRoot()->CreateChild<Text>();
+        this->text->SetFont(this->resourceCache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
+        this->text->SetHorizontalAlignment(HA_CENTER);
+        this->text->SetVerticalAlignment(VA_CENTER);
         this->SetScore(0);
 
         // Scene
@@ -116,13 +120,6 @@ public:
                 shape->SetRestitution(this->ballRestitution);
             }
         }
-    }
-    virtual void StartOnce() override {
-        // Score
-        this->text = this->GetSubsystem<UI>()->GetRoot()->CreateChild<Text>();
-        this->text->SetFont(this->resourceCache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
-        this->text->SetHorizontalAlignment(HA_CENTER);
-        this->text->SetVerticalAlignment(VA_CENTER);
     }
 private:
     Node *ballNode, *leftWallNode, *playerNode, *rightWallNode;

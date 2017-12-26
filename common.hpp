@@ -69,12 +69,15 @@ public:
             this->input->SetMouseVisible(true);
             this->resourceCache = GetSubsystem<ResourceCache>();
             this->resourceCache->AddResourceDir(GetParentPath(__FILE__));
+            this->font = this->resourceCache->GetResource<Font>("Fonts/Anonymous Pro.ttf");
+            this->ui = this->GetSubsystem<UI>();
+            SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Common, HandleKeyDown));
+            SubscribeToEvent(E_MOUSEBUTTONDOWN, URHO3D_HANDLER(Common, HandleMouseButtonDown));
+            SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Common, HandlePhysicsBeginContact2D));
+            SubscribeToEvent(E_PHYSICSPRESTEP, URHO3D_HANDLER(Common, HandlePhysicsPreStep));
+            SubscribeToEvent(E_PHYSICSUPDATECONTACT2D, URHO3D_HANDLER(Common, HandlePhysicsUpdateContact2D));
             SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Common, HandlePostRenderUpdate));
             SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Common, HandleUpdate));
-            SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Common, HandlePhysicsBeginContact2D));
-            SubscribeToEvent(E_PHYSICSUPDATECONTACT2D, URHO3D_HANDLER(Common, HandlePhysicsUpdateContact2D));
-            SubscribeToEvent(E_PHYSICSPRESTEP, URHO3D_HANDLER(Common, HandlePhysicsPreStep));
-            SubscribeToEvent(E_MOUSEBUTTONDOWN, URHO3D_HANDLER(Common, HandleMouseButtonDown));
             StartOnce();
         }
 
@@ -95,6 +98,7 @@ public:
         this->cameraNode->SetPosition(Vector3(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 2.0f, -1.0f));
         this->CreateCamera(this->cameraNode, this->GetWindowWidth());
 
+        // Mouse drag
         auto dummyNode = this->scene->CreateChild("Dummy");
         this->dummyBody = dummyNode->CreateComponent<RigidBody2D>();
         this->pickedNode = nullptr;
@@ -110,6 +114,7 @@ public:
 protected:
     bool debugEvents;
     Camera *camera;
+    Font *font;
     Input *input;
     Node *cameraNode, *dummyNode, *pickedNode;
     PhysicsWorld2D *physicsWorld;
@@ -117,6 +122,7 @@ protected:
     RigidBody2D *dummyBody;
     SharedPtr<Scene> scene;
     SharedPtr<Viewport> viewport;
+    UI *ui;
     uint64_t steps;
     // Generate robot input
     // TODO use a spacial index instead.
@@ -160,6 +166,27 @@ protected:
     }
 
     virtual void HandlePhysicsBeginContact2DExtra(StringHash eventType, VariantMap& eventData) {}
+
+    void HandleKeyDown(StringHash eventType, VariantMap& eventData) {
+        // Scene state
+        if (this->input->GetKeyDown(KEY_ESCAPE)) {
+            engine_->Exit();
+        }
+        // Restart the scene to the initial state.
+        if (this->input->GetKeyDown(KEY_F5)) {
+            this->scene->Clear();
+            this->ui->Clear();
+            this->Start();
+        }
+        // Save current scene to XML.
+        if (this->input->GetKeyDown(KEY_F6)) {
+            File saveFile(this->context_, GetSubsystem<FileSystem>()->GetProgramDir() + String(this->steps) + ".xml", FILE_WRITE);
+            this->scene->SaveXML(saveFile);
+        }
+        this->HandleKeyDownExtra(eventType, eventData);
+    }
+
+    virtual void HandleKeyDownExtra(StringHash /*eventType*/, VariantMap& /*eventData*/) {}
 
     void HandlePhysicsUpdateContact2D(StringHash eventType, VariantMap& eventData) {
         this->HandlePhysicsUpdateContact2DExtra(eventType, eventData);
@@ -229,21 +256,6 @@ protected:
         }
         if (this->input->GetKeyDown(KEY_UP)) {
             this->cameraNode->Translate(Vector2::UP * cameraStep);
-        }
-
-        // Scene state
-        if (this->input->GetKeyDown(KEY_ESCAPE)) {
-            engine_->Exit();
-        }
-        // Restart the scene to the initial state.
-        if (this->input->GetKeyDown(KEY_F5)) {
-            this->scene->Clear();
-            this->Start();
-        }
-        // Save current scene to XML.
-        if (this->input->GetKeyDown(KEY_F6)) {
-            File saveFile(this->context_, GetSubsystem<FileSystem>()->GetProgramDir() + String(this->steps) + ".xml", FILE_WRITE);
-            this->scene->SaveXML(saveFile);
         }
 
         // Generate robot voxel input.

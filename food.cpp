@@ -12,63 +12,60 @@ class Main : public Common {
 public:
     Main(Context* context) : Common(context) {}
     virtual void StartExtra() override {
+        // CLI arguments.
+        String scene;
+        auto args = GetArguments();
+        decltype(args.Size()) i = 0;
+        while (i < args.Size()) {
+            auto& arg = args[i];
+            if (arg == "-zscene") {
+                ++i;
+                scene = args[i].CString();
+            }
+            ++i;
+        }
+
         // Application state.
+        this->text = this->ui->GetRoot()->CreateChild<Text>();
+        this->text->SetFont(this->font, 20);
+        this->text->SetAlignment(HA_RIGHT, VA_TOP);
+        this->text->SetPosition(-10, 10);
         this->SetScore(0);
 
         // Scene
         {
-            Node *bottomWallNode;
-            RigidBody2D *wallBody;
+            // Apple
+            //if (scene == "apple-good")
             {
-                bottomWallNode = this->scene->CreateChild("BottomWall");
-                bottomWallNode->SetPosition(Vector2(this->GetWindowWidth() / 2.0, this->wallWidth / 2.0f));
-                wallBody = bottomWallNode->CreateComponent<RigidBody2D>();
-                auto shape = bottomWallNode->CreateComponent<CollisionBox2D>();
-                shape->SetSize(Vector2(this->GetWallLength(), this->wallWidth));
-                shape->SetRestitution(0.0);
-            } {
-                auto node = bottomWallNode->Clone();
-                node->SetName("TopWall");
-                node->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() - (this->wallWidth / 2.0f)));
-            } {
-                auto node = bottomWallNode->Clone();
-                node->SetName("RightWall");
-                node->SetRotation(Quaternion(90.0f));
-                node->SetPosition(Vector2(this->GetWindowWidth() - (this->wallWidth / 2.0f), this->GetWindowHeight() / 2.0f));
-            } {
-                auto node = bottomWallNode->Clone();
-                node->SetName("LeftWall");
-                node->SetRotation(Quaternion(90.0f));
-                node->SetPosition(Vector2(this->wallWidth / 2.0f, this->GetWindowHeight() / 2.0f));
-            } {
-                auto& node = this->playerNode;
-                node = this->scene->CreateChild("Player");
-                node->SetPosition(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
-                auto& body = this->playerBody;
-                body = node->CreateComponent<RigidBody2D>();
-                body->SetBodyType(BT_DYNAMIC);
-                body->SetLinearDamping(4.0);
-                body->SetAngularDamping(4.0);
-                body->SetBullet(true);
-                auto shape = node->CreateComponent<CollisionCircle2D>();
-                shape->SetDensity(this->playerDensity);
-                shape->SetFriction(0.0f);
-                shape->SetRadius(this->playerRadius);
-                shape->SetRestitution(this->playerRestitution);
-                this->CreateCamera(node, 20.0f * playerRadius);
-                this->SetSprite(node, shape, this->playerSprite);
-            } {
-                unsigned int napples = this->GetWindowWidth() * this->GetWindowHeight() / (100.0f * this->playerRadius * this->playerRadius);
-                for (auto i = 0u; i < napples; ++i)
-                    this->CreateRandomAppleNode();
+                this->windowWidth = 20.0f * this->playerRadius;
+                this->CreateWallNodes();
+                this->SetTitle("Apples are good");
+                {
+                    auto& node = this->playerNode;
+                    node = this->scene->CreateChild("Player");
+                    node->SetPosition(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    auto& body = this->playerBody;
+                    body = node->CreateComponent<RigidBody2D>();
+                    body->SetBodyType(BT_DYNAMIC);
+                    body->SetLinearDamping(4.0);
+                    body->SetAngularDamping(4.0);
+                    body->SetBullet(true);
+                    auto shape = node->CreateComponent<CollisionCircle2D>();
+                    shape->SetDensity(this->playerDensity);
+                    shape->SetFriction(0.0f);
+                    shape->SetRadius(this->playerRadius);
+                    shape->SetRestitution(this->playerRestitution);
+                    this->CreateCamera(node, 20.0f * playerRadius);
+                    this->SetSprite(node, shape, this->playerSprite);
+                } {
+                    unsigned int napples = this->GetWindowWidth() * this->GetWindowHeight() / (100.0f * this->playerRadius * this->playerRadius);
+                    for (auto i = 0u; i < napples; ++i)
+                        this->CreateRandomAppleNode();
+                }
             }
         }
     }
     virtual void StartOnce() override {
-        this->text = this->GetSubsystem<UI>()->GetRoot()->CreateChild<Text>();
-        this->text->SetFont(this->resourceCache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 20);
-        this->text->SetAlignment(HA_RIGHT, VA_TOP);
-        this->text->SetPosition(-10, 10);
         this->playerSprite = this->resourceCache->GetResource<Sprite2D>("./baby-face.png");
         this->appleSprite = this->resourceCache->GetResource<Sprite2D>("./shiny-apple.png");
     }
@@ -85,9 +82,7 @@ private:
     static constexpr float playerRadius = 1.0f;
     static constexpr float playerRestitution = 0.2f;
     static constexpr float wallWidth = playerRadius;
-    virtual float GetWallLength() const { return this->GetWindowWidth(); }
-    virtual float GetWindowHeight() const override { return this->GetWindowWidth(); }
-    virtual float GetWindowWidth() const override { return 100.0f; }
+    float windowWidth;
 
     static void Rotate2D(Vector2& vec, float angle) {
         auto vec3 = Quaternion(angle) * vec;
@@ -138,21 +133,37 @@ private:
         return true;
     }
 
-    void SetSprite(Node *node, CollisionShape2D *shape, Sprite2D *sprite) {
-        auto position = node->GetPosition2D();
-        auto b2Aabb = shape->GetFixture()->GetAABB(0);
-        auto lowerBound = Vector2(b2Aabb.lowerBound.x, b2Aabb.lowerBound.y);
-        auto upperBound = Vector2(b2Aabb.upperBound.x, b2Aabb.upperBound.y);
-        PODVector<RigidBody2D*> rigidBodies;
-        auto aabb = Rect(lowerBound, upperBound);
-        auto staticSprite = node->CreateComponent<StaticSprite2D>();
-        staticSprite->SetSprite(sprite);
-        staticSprite->SetDrawRect(aabb - Rect(position, position));
-    }
-
     virtual void CreateRandomAppleNode() {
         while (!this->CreateAppleNode(Vector2(Random(), Random()) * this->GetWindowWidth(), Random() * 360.0f));
     }
+
+    virtual void CreateWallNodes() {
+        Node *bottomWallNode;
+        {
+            bottomWallNode = this->scene->CreateChild("BottomWall");
+            bottomWallNode->SetPosition(Vector2(this->GetWindowWidth() / 2.0, this->wallWidth / 2.0f));
+            auto wallBody = bottomWallNode->CreateComponent<RigidBody2D>();
+            auto shape = bottomWallNode->CreateComponent<CollisionBox2D>();
+            shape->SetSize(Vector2(this->GetWindowWidth(), this->wallWidth));
+            shape->SetRestitution(0.0);
+        } {
+            auto node = bottomWallNode->Clone();
+            node->SetName("TopWall");
+            node->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() - (this->wallWidth / 2.0f)));
+        } {
+            auto node = bottomWallNode->Clone();
+            node->SetName("RightWall");
+            node->SetRotation(Quaternion(90.0f));
+            node->SetPosition(Vector2(this->GetWindowWidth() - (this->wallWidth / 2.0f), this->GetWindowHeight() / 2.0f));
+        } {
+            auto node = bottomWallNode->Clone();
+            node->SetName("LeftWall");
+            node->SetRotation(Quaternion(90.0f));
+            node->SetPosition(Vector2(this->wallWidth / 2.0f, this->GetWindowHeight() / 2.0f));
+        }
+    }
+
+    virtual float GetWindowWidth() const override { return this->windowWidth; }
 
     virtual void HandlePhysicsBeginContact2DExtra(StringHash eventType, VariantMap& eventData) override {
         using namespace PhysicsBeginContact2D;
@@ -233,6 +244,7 @@ private:
             std::cout << std::endl;
         }
 
+        // Touch sensor.
         for (const auto& keyVal : contactDataMap[this->playerNode]) {
             auto node = keyVal.first;
             auto contactDatas = keyVal.second;
@@ -292,7 +304,27 @@ private:
 
     void SetScore(uint64_t score) {
         this->score = score;
-        this->text->SetText(std::to_string(this->score).c_str());
+        this->text->SetText(("Score: " + std::to_string(this->score)).c_str());
+    }
+
+    void SetSprite(Node *node, CollisionShape2D *shape, Sprite2D *sprite) {
+        auto position = node->GetPosition2D();
+        auto b2Aabb = shape->GetFixture()->GetAABB(0);
+        auto lowerBound = Vector2(b2Aabb.lowerBound.x, b2Aabb.lowerBound.y);
+        auto upperBound = Vector2(b2Aabb.upperBound.x, b2Aabb.upperBound.y);
+        PODVector<RigidBody2D*> rigidBodies;
+        auto aabb = Rect(lowerBound, upperBound);
+        auto staticSprite = node->CreateComponent<StaticSprite2D>();
+        staticSprite->SetSprite(sprite);
+        staticSprite->SetDrawRect(aabb - Rect(position, position));
+    }
+
+    void SetTitle(String title) {
+        auto text = this->ui->GetRoot()->CreateChild<Text>();
+        text->SetFont(this->font, 20);
+        text->SetAlignment(HA_LEFT, VA_TOP);
+        text->SetPosition(0, 10);
+        text->SetText(title);
     }
 };
 
