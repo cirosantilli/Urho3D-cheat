@@ -2,8 +2,10 @@
 #define COMMON_HPP
 
 #include <cmath>
+#include <iomanip>
 #include <iostream>
 #include <map>
+#include <sstream>
 #include <vector>
 
 #include <Urho3D/Core/CoreEvents.h>

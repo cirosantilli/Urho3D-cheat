@@ -30,16 +30,16 @@ public:
         this->text->SetFont(this->font, 20);
         this->text->SetAlignment(HA_RIGHT, VA_TOP);
         this->text->SetPosition(-10, 10);
-        this->SetScore(0);
+        this->SetScore(0.0f);
 
         // Scene
         {
             // Apple
             //if (scene == "apple-good")
             {
+                this->SetTitle("Apples are good");
                 this->windowWidth = 20.0f * this->playerRadius;
                 this->CreateWallNodes();
-                this->SetTitle("Apples are good");
                 {
                     auto& node = this->playerNode;
                     node = this->scene->CreateChild("Player");
@@ -94,7 +94,7 @@ private:
     Sprite2D *appleSprite, *playerSprite;
     Text *text;
     std::map<Node*,std::map<Node*,std::vector<ContactData>>> contactDataMap;
-    uint64_t score;
+    float score;
 
     virtual bool CreateAppleNode(const Vector2& position, float rotation = 0.0f) {
         auto node = this->scene->CreateChild("Apple");
@@ -180,7 +180,7 @@ private:
             player = true;
         }
         if (player && otherNode->GetVar(IS_FOOD).GetBool()) {
-            this->SetScore(this->score + 1);
+            this->SetScore(this->score + 1.0f);
             otherNode->Remove();
             this->CreateRandomAppleNode();
         }
@@ -299,12 +299,15 @@ private:
             playerBody->ApplyTorque(-torqueMagnitude, true);
         }
 
+        //this->SetScore(this->score - 0.001f);
         contactDataMap.clear();
     }
 
-    void SetScore(uint64_t score) {
+    void SetScore(float score) {
         this->score = score;
-        this->text->SetText(("Score: " + std::to_string(this->score)).c_str());
+        std::stringstream ss;
+        ss << "Score: " << std::fixed << std::setprecision(0) << score;
+        this->text->SetText(ss.str().c_str());
     }
 
     void SetSprite(Node *node, CollisionShape2D *shape, Sprite2D *sprite) {
