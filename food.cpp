@@ -90,7 +90,6 @@ private:
     virtual float GetWindowWidth() const override { return 100.0f; }
 
     static void Rotate2D(Vector2& vec, float angle) {
-        static std::string s("IsFood");
         auto vec3 = Quaternion(angle) * vec;
         vec = Vector2(vec3.x_, vec3.y_);
     }
@@ -102,9 +101,10 @@ private:
     std::map<Node*,std::map<Node*,std::vector<ContactData>>> contactDataMap;
     uint64_t score;
 
-    virtual bool CreateAppleNode(const Vector2& position) {
+    virtual bool CreateAppleNode(const Vector2& position, float rotation = 0.0f) {
         auto node = this->scene->CreateChild("Apple");
         node->SetPosition(position);
+        node->SetRotation(Quaternion(rotation));
         node->SetVar(IS_FOOD, true);
         auto body = node->CreateComponent<RigidBody2D>();
         body->SetBodyType(BT_DYNAMIC);
@@ -151,7 +151,7 @@ private:
     }
 
     virtual void CreateRandomAppleNode() {
-        while (!this->CreateAppleNode(Vector2(Random(), Random()) * this->GetWindowWidth()));
+        while (!this->CreateAppleNode(Vector2(Random(), Random()) * this->GetWindowWidth(), Random() * 360.0f));
     }
 
     virtual void HandlePhysicsBeginContact2DExtra(StringHash eventType, VariantMap& eventData) override {
