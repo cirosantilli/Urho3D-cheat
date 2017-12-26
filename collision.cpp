@@ -12,16 +12,19 @@ class Main : public Common {
 public:
     Main(Context* context) : Common(context) {}
     virtual void StartExtra() override {
-        this->physicsWorld->SetGravity(Vector2(0.0f, -this->windowWidth));
+        this->physicsWorld->SetGravity(Vector2(0.0f, -this->GetWindowWidth()));
+        auto groundWidth = this->GetWindowWidth();
+        auto groundHeight = this->GetWindowHeight()/ 10.0f;
+        auto ballRadius = this->GetWindowWidth() / 20.0f;
 
         // Ground
         {
             auto& node = this->groundNode;
             node = this->scene->CreateChild("Ground");
-            node->SetPosition(Vector2(this->windowWidth / 2.0f, this->groundHeight / 2.0f));
+            node->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, groundHeight / 2.0f));
             node->CreateComponent<RigidBody2D>();
             auto shape = node->CreateComponent<CollisionBox2D>();
-            shape->SetSize(Vector2(this->groundWidth, this->groundHeight));
+            shape->SetSize(Vector2(groundWidth, groundHeight));
             shape->SetDensity(1.0f);
             shape->SetFriction(1.0f);
             shape->SetRestitution(0.75f);
@@ -30,13 +33,13 @@ public:
         // Left ball
         {
             this->leftBallNode = this->scene->CreateChild("LeftBall");
-            this->leftBallNode->SetPosition(Vector2(windowWidth / 4.0f, this->windowHeight / 2.0f));
+            this->leftBallNode->SetPosition(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
             auto body = this->leftBallNode->CreateComponent<RigidBody2D>();
             body->SetBodyType(BT_DYNAMIC);
             auto shape = this->leftBallNode->CreateComponent<CollisionCircle2D>();
             shape->SetDensity(1.0f);
             shape->SetFriction(1.0f);
-            shape->SetRadius(this->ballRadius);
+            shape->SetRadius(ballRadius);
             shape->SetRestitution(0.75f);
         }
 
@@ -45,14 +48,10 @@ public:
             auto& node = this->rightBallNode;
             node = this->leftBallNode->Clone();
             node->SetName("RightBall");
-            node->SetPosition(Vector2(windowWidth * (3.0f / 4.0f), this->windowHeight * (3.0f / 4.0f)));
+            node->SetPosition(Vector2(this->GetWindowWidth() * (3.0f / 4.0f), this->GetWindowHeight() * (3.0f / 4.0f)));
         }
     }
 private:
-    static constexpr float groundWidth = windowWidth;
-    static constexpr float groundHeight = windowWidth / 10.0f;
-    static constexpr float ballRadius = windowWidth / 20.0f;
-
     Node *leftBallNode, *groundNode, *rightBallNode;
 
     virtual void HandlePhysicsBeginContact2DExtra(StringHash eventType, VariantMap& eventData) override {

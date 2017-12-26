@@ -14,14 +14,17 @@ public:
     virtual void StartExtra() override {
         auto velocity = 1.00f;
         //auto velocity = 1.01f;
+        auto groundWidth = this->GetWindowWidth();
+        auto groundHeight = this->GetWindowHeight()/ 10.0f;
+        auto ballRadius = this->GetWindowWidth() / 20.0f;
 
         // Ground
         {
             auto node = this->scene->CreateChild("Ground");
-            node->SetPosition(Vector3(this->windowWidth / 2.0f, this->groundHeight / 2.0f, 0.0f));
+            node->SetPosition(Vector3(this->GetWindowWidth() / 2.0f, groundHeight / 2.0f, 0.0f));
             node->CreateComponent<RigidBody2D>();
             auto shape = node->CreateComponent<CollisionBox2D>();
-            shape->SetSize(Vector2(this->windowWidth, this->groundHeight));
+            shape->SetSize(Vector2(groundWidth, groundHeight));
             shape->SetDensity(1.0);
             shape->SetFriction(1.0f);
             shape->SetRestitution(1.0);
@@ -30,21 +33,17 @@ public:
         // Ball
         {
             auto node = this->scene->CreateChild("Ball");
-            node->SetPosition(Vector3(windowWidth / 2.0f, this->windowHeight / 2.0f, 0.0f));
+            node->SetPosition(Vector3(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 2.0f, 0.0f));
             auto body = node->CreateComponent<RigidBody2D>();
             body->SetBodyType(BT_DYNAMIC);
             body->SetLinearVelocity(Vector2(0.0f, -velocity));
             auto shape = node->CreateComponent<CollisionCircle2D>();
             shape->SetDensity(1.0);
             shape->SetFriction(1.0f);
-            shape->SetRadius(this->ballRadius);
+            shape->SetRadius(ballRadius);
             shape->SetRestitution(1.0);
         }
     }
-private:
-    static constexpr float groundWidth = windowWidth;
-    static constexpr float groundHeight = windowWidth / 10.0f;
-    static constexpr float ballRadius = windowWidth / 20.0f;
 };
 
 URHO3D_DEFINE_APPLICATION_MAIN(Main);

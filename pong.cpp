@@ -24,9 +24,12 @@ public:
         {
             Node *bottomWallNode;
             RigidBody2D *wallBody;
+            auto playerLength = this->GetWindowHeight() / 4.0f;
+            auto wallLength = this->GetWindowWidth();
+            auto wallWidth = this->GetWindowWidth() / 20.0f;
             {
                 bottomWallNode = this->scene->CreateChild("BottomWall");
-                bottomWallNode->SetPosition(Vector2(this->windowWidth / 2.0, wallWidth / 2.0f));
+                bottomWallNode->SetPosition(Vector2(this->GetWindowWidth() / 2.0, wallWidth / 2.0f));
                 wallBody = bottomWallNode->CreateComponent<RigidBody2D>();
                 auto shape = bottomWallNode->CreateComponent<CollisionBox2D>();
                 shape->SetSize(Vector2(wallLength, wallWidth));
@@ -34,19 +37,19 @@ public:
             } {
                 auto node = bottomWallNode->Clone();
                 node->SetName("TopWall");
-                node->SetPosition(Vector2(this->windowWidth / 2.0f, this->windowHeight - (this->wallWidth / 2.0f)));
+                node->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() - (wallWidth / 2.0f)));
             } {
                 auto& node = this->rightWallNode;
                 node = bottomWallNode->Clone();
                 node->SetName("RightWall");
                 node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
-                node->SetPosition(Vector2(this->windowWidth - (this->wallWidth / 2.0f), this->windowHeight / 2.0f));
+                node->SetPosition(Vector2(this->GetWindowWidth() - (wallWidth / 2.0f), this->GetWindowHeight() / 2.0f));
             } {
                 auto& node = this->leftWallNode;
                 node = bottomWallNode->Clone();
                 node->SetName("LeftWall");
                 node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
-                node->SetPosition(Vector2(-this->wallWidth / 2.0f, this->windowHeight / 2.0f));
+                node->SetPosition(Vector2(-wallWidth / 2.0f, this->GetWindowHeight() / 2.0f));
             } {
                 auto& node = this->playerNode;
                 node = bottomWallNode->Clone();
@@ -54,7 +57,7 @@ public:
                 node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
                 // TODO The more elegant value of x is wallWidth / 2.0. But then we get stuck
                 // to the left wall when the ball hits the player. Use collision filtering.
-                node->SetPosition(Vector2(wallWidth, windowHeight / 2.0f));
+                node->SetPosition(Vector2(wallWidth, this->GetWindowHeight() / 2.0f));
 
                 auto body = node->GetComponent<RigidBody2D>();
                 body->SetBodyType(BT_DYNAMIC);
@@ -65,13 +68,13 @@ public:
                 // See prismatic_collide_connected.cpp
                 auto bottomWallCloneNode = bottomWallNode->Clone();
                 bottomWallCloneNode->SetName("Player");
-                bottomWallCloneNode->SetPosition(Vector2(windowHeight / 2.0f, -windowWidth));
+                bottomWallCloneNode->SetPosition(Vector2(this->GetWindowHeight() / 2.0f, -this->GetWindowWidth()));
 
                 auto constraint = node->CreateComponent<ConstraintPrismatic2D>();
                 constraint->SetOtherBody(bottomWallCloneNode->GetComponent<RigidBody2D>());
                 //constraint->SetOtherBody(wallBody);
                 constraint->SetAxis(Vector2(0.0f, 1.0f));
-                constraint->SetAnchor(Vector2(this->windowWidth / 2.0f, 0.0f));
+                constraint->SetAnchor(Vector2(this->GetWindowWidth() / 2.0f, 0.0f));
                 constraint->SetCollideConnected(true);
 
                 // Main rectangle
@@ -80,7 +83,7 @@ public:
                     shape->SetDensity(this->playerDensity);
                     shape->SetFriction(this->playerFriction);
                     shape->SetRestitution(this->playerRestitution);
-                    shape->SetSize(Vector2(this->playerLength, this->wallWidth));
+                    shape->SetSize(Vector2(playerLength, wallWidth));
                 }
                 // Upper circle
                 {
@@ -88,8 +91,8 @@ public:
                     shape->SetDensity(0.0f);
                     shape->SetFriction(this->playerFriction);
                     shape->SetRestitution(this->playerRestitution);
-                    shape->SetCenter(Vector2(this->playerLength / 2.0f, 0.0f));
-                    shape->SetRadius(this->wallWidth / 2.0f);
+                    shape->SetCenter(Vector2(playerLength / 2.0f, 0.0f));
+                    shape->SetRadius(wallWidth / 2.0f);
                 }
                 // Lower circle
                 {
@@ -97,19 +100,19 @@ public:
                     shape->SetDensity(0.0f);
                     shape->SetFriction(this->playerFriction);
                     shape->SetRestitution(this->playerRestitution);
-                    shape->SetCenter(Vector2(-this->playerLength / 2.0f, 0.0f));
-                    shape->SetRadius(this->wallWidth / 2.0f);
+                    shape->SetCenter(Vector2(-playerLength / 2.0f, 0.0f));
+                    shape->SetRadius(wallWidth / 2.0f);
                 }
             } {
                 this->ballNode = this->scene->CreateChild("Ball");
-                this->ballNode->SetPosition(Vector2(this->windowWidth / 4.0f, windowHeight / 2.0f));
+                this->ballNode->SetPosition(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                 auto body = this->ballNode->CreateComponent<RigidBody2D>();
                 body->SetBodyType(BT_DYNAMIC);
-                body->SetLinearVelocity(Vector2(2 * this->windowWidth, -windowHeight / 2.0f));
+                body->SetLinearVelocity(Vector2(2 * this->GetWindowWidth(), -this->GetWindowHeight() / 2.0f));
                 auto shape = this->ballNode->CreateComponent<CollisionCircle2D>();
                 shape->SetDensity(this->ballDensity);
                 shape->SetFriction(0.0f);
-                shape->SetRadius(this->ballRadius);
+                shape->SetRadius(this->GetWindowWidth() / 20.0f);
                 shape->SetRestitution(this->ballRestitution);
             }
         }
@@ -126,15 +129,11 @@ private:
     Text *text;
     uint64_t score;
 
-    static constexpr float ballRadius = windowWidth / 20.0f;
     static constexpr float ballRestitution = 1.0f;
     static constexpr float ballDensity = 1.0f;
     static constexpr float playerDensity = 10.0f * ballDensity;
-    static constexpr float playerLength = windowHeight / 4.0f;
     static constexpr float playerFriction = 1.0f;
     static constexpr float playerRestitution = 0.0f;
-    static constexpr float wallLength = windowWidth;
-    static constexpr float wallWidth = windowWidth / 20.0f;
 
     virtual void HandlePhysicsBeginContact2DExtra(StringHash eventType, VariantMap& eventData) override {
         using namespace PhysicsBeginContact2D;
@@ -159,7 +158,7 @@ private:
 
     virtual void HandleUpdateExtra(StringHash eventType, VariantMap& eventData) override {
         using namespace Update;
-        auto forceMagnitude = this->windowWidth * this->playerDensity * 10.0f;
+        auto forceMagnitude = this->GetWindowWidth() * this->playerDensity * 10.0f;
         auto body = this->playerNode->GetComponent<RigidBody2D>();
         if (this->input->GetKeyDown(KEY_S)) {
             body->ApplyForceToCenter(Vector2::DOWN * forceMagnitude, true);

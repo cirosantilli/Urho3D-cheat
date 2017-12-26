@@ -92,8 +92,8 @@ public:
 
         // Camera
         this->cameraNode = this->scene->CreateChild("Camera");
-        this->cameraNode->SetPosition(Vector3(this->windowWidth / 2.0f, this->windowHeight / 2.0f, -1.0f));
-        this->CreateCamera(this->cameraNode, this->windowWidth);
+        this->cameraNode->SetPosition(Vector3(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 2.0f, -1.0f));
+        this->CreateCamera(this->cameraNode, this->GetWindowWidth());
 
         auto dummyNode = this->scene->CreateChild("Dummy");
         this->dummyBody = dummyNode->CreateComponent<RigidBody2D>();
@@ -122,13 +122,6 @@ protected:
     // TODO use a spacial index instead.
     std::vector<std::pair<Vector2, Node *>> worldVoxel;
 
-    /// Everything in the scene should be proportional to this number,
-    /// so that we can set it to anything we want without changing anything.
-    ///
-    /// Our perfect symmetry is broken however by evil things like Box2D thresholds
-    /// as explained in velocity_stop.cpp, going close to 1.0f is a bad idea.
-    static constexpr float windowWidth = 10.0f;
-    static constexpr float windowHeight = windowWidth;
     static constexpr float cameraSpeed = 1.0;
     static constexpr float cameraZoomSpeed = 0.5f;
     static constexpr unsigned int voxelResolution = 100;
@@ -153,6 +146,13 @@ protected:
     }
 
     virtual float GetWindowHeight() const { return this->GetWindowWidth(); }
+    /**
+     * Everything in the scene should be proportional to this number,
+     * so that we can set it to anything we want without changing anything.
+     *
+     * Our perfect symmetry is broken however by evil things like Box2D thresholds
+     * as explained in velocity_stop.cpp, going close to 1.0f is a bad idea.
+     */
     virtual float GetWindowWidth() const { return 10.0f; }
 
     void HandlePhysicsBeginContact2D(StringHash eventType, VariantMap& eventData) {
@@ -235,23 +235,26 @@ protected:
         if (this->input->GetKeyDown(KEY_ESCAPE)) {
             engine_->Exit();
         }
+        // Restart the scene to the initial state.
         if (this->input->GetKeyDown(KEY_F5)) {
-            File saveFile(this->context_, GetSubsystem<FileSystem>()->GetProgramDir() + String(this->steps) + ".xml", FILE_WRITE);
-            this->scene->SaveXML(saveFile);
-        }
-        if (this->input->GetKeyDown(KEY_R)) {
             this->scene->Clear();
             this->Start();
         }
+        // Save current scene to XML.
+        if (this->input->GetKeyDown(KEY_F6)) {
+            File saveFile(this->context_, GetSubsystem<FileSystem>()->GetProgramDir() + String(this->steps) + ".xml", FILE_WRITE);
+            this->scene->SaveXML(saveFile);
+        }
 
+        // Generate robot voxel input.
         if (false) {
             this->worldVoxel.clear();
             for (unsigned int x = 0; x < this->voxelResolution; ++x) {
                 for (unsigned int y = 0; y < this->voxelResolution; ++y) {
                     auto worldPosition = Vector2(
-                        // TODO override windowWidth and use that here.
-                        x * this->windowHeight / this->voxelResolution,
-                        y * this->windowWidth / this->voxelResolution
+                        // TODO override this->GetWindowWidth() and use that here.
+                        x * this->GetWindowHeight() / this->voxelResolution,
+                        y * this->GetWindowWidth() / this->voxelResolution
                     );
                     auto rigidBody = this->physicsWorld->GetRigidBody(Vector2(worldPosition));
                     if (rigidBody) {

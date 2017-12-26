@@ -13,33 +13,32 @@ class Main : public Common {
 public:
     Main(Context* context) : Common(context) {}
     virtual void StartExtra() override {
-        this->physicsWorld->SetGravity(Vector2(0.0f, -this->windowWidth));
+        this->physicsWorld->SetGravity(Vector2(0.0f, -this->GetWindowWidth()));
+        auto groundWidth = this->GetWindowWidth();
+        auto groundHeight = this->GetWindowWidth() / 10.0f;
 
         // Ground
         {
             auto& node = this->groundNode;
             node = this->scene->CreateChild("Ground");
-            node->SetPosition(Vector2(this->windowWidth / 2.0, this->groundHeight));
+            node->SetPosition(Vector2(groundWidth / 2.0, groundHeight));
             auto body = node->CreateComponent<RigidBody2D>();
             body->SetBodyType(BT_STATIC);
             auto shape = node->CreateComponent<CollisionBox2D>();
-            shape->SetSize(Vector2(this->groundWidth, this->groundHeight));
+            shape->SetSize(Vector2(groundWidth, groundHeight));
             shape->SetDensity(1.0f);
             shape->SetFriction(1.0f);
             shape->SetRestitution(0.75f);
         }
 
         // Boxes
-        this->CreateBox(this->windowWidth / 2.0f, this->windowHeight / 2.0f, this->windowWidth /  5.0, this->windowWidth / 10.0);
-        this->CreateBox(this->windowWidth / 2.0f, this->windowWidth / 4.0f, this->windowHeight / 10.0, this->windowWidth / 10.0);
+        this->CreateBox(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 2.0f, this->GetWindowWidth() /  5.0, this->GetWindowWidth() / 10.0);
+        this->CreateBox(this->GetWindowWidth() / 2.0f, this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 10.0, this->GetWindowWidth() / 10.0);
     }
     virtual void StartOnce() override {
         this->boxSprite = this->resourceCache->GetResource<Sprite2D>("Urho2D/Box.png");
     }
 private:
-    static constexpr float groundWidth = windowWidth;
-    static constexpr float groundHeight = windowWidth / 10.0f;
-
     Node *groundNode;
     Sprite2D *boxSprite;
 
