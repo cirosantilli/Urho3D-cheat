@@ -92,6 +92,58 @@ public:
                         node->Translate(Vector2(2.0f * this->GetWindowHeight() / 8.0f + this->playerRadius, 0.0f));
                     }
                 } break;
+                case 4: {
+                    this->SetTitle("Patience");
+                    this->windowWidth = 20.0f * this->playerRadius;
+                    this->CreateWallNodes();
+                    this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    this->CreateAppleNode(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    auto bottomSeparatorWallNode = this->scene->CreateChild("SeparatorWallBottom");
+                    auto bottomSeparatorLength = (this->GetWindowHeight() - 3.0f * this->playerRadius) / 2.0f;
+                    {
+                        auto& node = bottomSeparatorWallNode;
+                        node->SetPosition(Vector2(
+                            this->GetWindowWidth() / 2.0f,
+                            bottomSeparatorLength / 2.0f
+                        ));
+                        node->SetRotation(Quaternion(90.0f));
+                        node->CreateComponent<RigidBody2D>();
+                        auto shape = node->CreateComponent<CollisionBox2D>();
+                        shape->SetSize(Vector2(bottomSeparatorLength, this->wallWidth));
+                        shape->SetRestitution(0.0);
+                    } {
+                        auto node = bottomSeparatorWallNode->Clone();
+                        node->SetName("SeparatorWallTop");
+                        node->SetPosition(Vector2(
+                            bottomSeparatorWallNode->GetPosition2D().x_,
+                            this->GetWindowHeight() - bottomSeparatorLength / 2.0f
+                        ));
+                    } {
+                        //auto node = bottomSeparatorWallNode->Clone();
+                        //node->SetName("Door");
+                        //node->SetPosition(Vector2(
+                            //bottomSeparatorWallNode->GetPosition2D().x_ - 2.0f * this->wallWidth,
+                            //this->GetWindowHeight() - bottomSeparatorLength / 1.5f
+                        //));
+                        //auto body = node->CreateComponent<RigidBody2D>();
+                        //body->SetBodyType(BT_KINEMATIC);
+                        //body->SetLinearVelocity(Vector2::DOWN * this->GetWindowWidth());
+
+                        // TODO not moving?
+                        auto& node = bottomSeparatorWallNode;
+                        node->SetPosition(Vector2(
+                            bottomSeparatorWallNode->GetPosition2D().x_ - 2.0f * this->wallWidth,
+                            this->GetWindowHeight() - bottomSeparatorLength / 1.5f
+                        ));
+                        node->SetRotation(Quaternion(90.0f));
+                        auto body = node->CreateComponent<RigidBody2D>();
+                        body->SetBodyType(BT_KINEMATIC);
+                        body->SetLinearVelocity(Vector2::DOWN * this->GetWindowWidth());
+                        auto shape = node->CreateComponent<CollisionBox2D>();
+                        shape->SetSize(Vector2(bottomSeparatorLength, this->wallWidth));
+                        shape->SetRestitution(0.0);
+                    }
+                } break;
             }
         }
     }
@@ -108,12 +160,20 @@ public:
             }
             ++i;
         }
-        this->sceneNameToIdx = {
-            {"apple-good", 0},
-            {"curiosity", 1},
-            {"topology", 2},
-            {"out-of-reach", 3}
+        std::vector<String> scenes = {
+            "apple-good",
+            "curiosity",
+            "topology",
+            "out-of-reach",
+            "patience"
         };
+        {
+            decltype(scenes)::size_type i = 0;
+            for (const auto& scene : scenes) {
+                this->sceneNameToIdx[scene] = i;
+                ++i;
+            }
+        }
         auto it = sceneNameToIdx.find(sceneName);
         if (it != sceneNameToIdx.end()) {
             sceneIdx = it->second;
