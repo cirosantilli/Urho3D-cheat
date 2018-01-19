@@ -1,5 +1,9 @@
 /*
 One agent eats apples and gets happy.
+
+TODO:
+
+- walking over this surface is slower
 */
 
 #include "common.hpp"
@@ -11,7 +15,7 @@ static const StringHash IS_FOOD("IsFood");
 class Main : public Common {
 public:
     Main(Context* context) : Common(context) {
-        sceneIdx = 0;
+        this->sceneIdx = 0;
     }
     virtual void StartExtra() override {
 
@@ -24,9 +28,8 @@ public:
 
         // Scene
         {
-            switch (sceneIdx) {
-                default:
-                case 0: {
+            std::unordered_map<size_t,std::function<void()>> {
+                {Main::sceneNameToIdx["apple-good"], [&](){
                     this->SetTitle("Apples are good");
                     this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
@@ -34,8 +37,8 @@ public:
                     unsigned int napples = this->GetWindowWidth() * this->GetWindowHeight() / (100.0f * this->playerRadius * this->playerRadius);
                     for (auto i = 0u; i < napples; ++i)
                         this->CreateRandomAppleNode();
-                } break;
-                case 1: {
+                }},
+                {Main::sceneNameToIdx["curiosity"], [&](){
                     this->SetTitle("Curiosity is necessary");
                     this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
@@ -50,9 +53,8 @@ public:
                         shape->SetSize(Vector2(this->GetWindowWidth() / 2.0f, this->wallWidth));
                         shape->SetRestitution(0.0);
                     }
-
-                } break;
-                case 2: {
+                }},
+                {Main::sceneNameToIdx["topology"], [&](){
                     this->SetTitle("Topology");
                     this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
@@ -67,8 +69,8 @@ public:
                         shape->SetSize(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->wallWidth));
                         shape->SetRestitution(0.0);
                     }
-                } break;
-                case 3: {
+                }},
+                {Main::sceneNameToIdx["out-of-reach"], [&](){
                     this->SetTitle("Out of reach");
                     this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
@@ -91,8 +93,8 @@ public:
                         node->SetName("SeparatorWallTop");
                         node->Translate(Vector2(2.0f * this->GetWindowHeight() / 8.0f + this->playerRadius, 0.0f));
                     }
-                } break;
-                case 4: {
+                }},
+                {Main::sceneNameToIdx["patience"], [&](){
                     this->SetTitle("Patience");
                     this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
@@ -119,32 +121,18 @@ public:
                             this->GetWindowHeight() - bottomSeparatorLength / 2.0f
                         ));
                     } {
-                        //auto node = bottomSeparatorWallNode->Clone();
-                        //node->SetName("Door");
-                        //node->SetPosition(Vector2(
-                            //bottomSeparatorWallNode->GetPosition2D().x_ - 2.0f * this->wallWidth,
-                            //this->GetWindowHeight() - bottomSeparatorLength / 1.5f
-                        //));
-                        //auto body = node->CreateComponent<RigidBody2D>();
-                        //body->SetBodyType(BT_KINEMATIC);
-                        //body->SetLinearVelocity(Vector2::DOWN * this->GetWindowWidth());
-
-                        // TODO not moving?
-                        auto& node = bottomSeparatorWallNode;
+                        auto node = bottomSeparatorWallNode->Clone();
+                        node->SetName("Door");
                         node->SetPosition(Vector2(
-                            bottomSeparatorWallNode->GetPosition2D().x_ - 2.0f * this->wallWidth,
-                            this->GetWindowHeight() - bottomSeparatorLength / 1.5f
+                            bottomSeparatorWallNode->GetPosition2D().x_ - this->wallWidth,
+                            this->GetWindowHeight() - bottomSeparatorLength / 2.0f
                         ));
-                        node->SetRotation(Quaternion(90.0f));
-                        auto body = node->CreateComponent<RigidBody2D>();
+                        auto body = node->GetComponent<RigidBody2D>();
                         body->SetBodyType(BT_KINEMATIC);
-                        body->SetLinearVelocity(Vector2::DOWN * this->GetWindowWidth());
-                        auto shape = node->CreateComponent<CollisionBox2D>();
-                        shape->SetSize(Vector2(bottomSeparatorLength, this->wallWidth));
-                        shape->SetRestitution(0.0);
+                        body->SetLinearVelocity(Vector2::DOWN * this->GetWindowWidth() / 5.0f);
                     }
-                } break;
-            }
+                }}
+            }[this->sceneIdx]();
         }
     }
     virtual void StartOnce() override {
@@ -160,23 +148,10 @@ public:
             }
             ++i;
         }
-        std::vector<String> scenes = {
-            "apple-good",
-            "curiosity",
-            "topology",
-            "out-of-reach",
-            "patience"
-        };
-        {
-            decltype(scenes)::size_type i = 0;
-            for (const auto& scene : scenes) {
-                this->sceneNameToIdx[scene] = i;
-                ++i;
-            }
-        }
-        auto it = sceneNameToIdx.find(sceneName);
-        if (it != sceneNameToIdx.end()) {
-            sceneIdx = it->second;
+
+        auto it = this->sceneNameToIdx.find(sceneName);
+        if (it != this->sceneNameToIdx.end()) {
+            this->sceneIdx = it->second;
         }
 
         this->playerSprite = this->resourceCache->GetResource<Sprite2D>("./baby-face.png");
@@ -195,11 +170,30 @@ private:
     static constexpr float playerRadius = 1.0f;
     static constexpr float playerRestitution = 0.2f;
     static constexpr float wallWidth = playerRadius;
+    static std::map<String,size_t> sceneNameToIdx;
 
     static void Rotate2D(Vector2& vec, float angle) {
         auto vec3 = Quaternion(angle) * vec;
         vec = Vector2(vec3.x_, vec3.y_);
     }
+
+    static class _StaticConstructor {
+        public:
+            _StaticConstructor() {
+                static std::vector<String> scenes = {
+                    "apple-good",
+                    "curiosity",
+                    "topology",
+                    "out-of-reach",
+                    "patience"
+                };
+                decltype(scenes)::size_type i = 0;
+                for (const auto& scene : scenes) {
+                    sceneNameToIdx.emplace(scene, i);
+                    ++i;
+                }
+            }
+    } _staticConstructor;
 
     Node *playerNode;
     RigidBody2D *playerBody;
@@ -209,7 +203,6 @@ private:
     float windowWidth;
     size_t sceneIdx;
     std::map<Node*,std::map<Node*,std::vector<ContactData>>> contactDataMap;
-    std::map<String,int> sceneNameToIdx;
 
     virtual bool CreatePlayerNode(const Vector2& position, float rotation = 0.0f) {
         auto& node = this->playerNode;
@@ -303,8 +296,7 @@ private:
         using namespace KeyDown;
         auto key = eventData[P_KEY].GetInt();
         if (key == KEY_N) {
-            // Next scenario.
-            sceneIdx = (sceneIdx + 1) % this->sceneNameToIdx.size();
+            this->sceneIdx = (this->sceneIdx + 1) % this->sceneNameToIdx.size();
             this->Reset();
         }
     }
@@ -406,41 +398,64 @@ private:
             }
         }
 
-        // Act
-        auto playerBody = this->playerNode->GetComponent<RigidBody2D>();
-        auto playerMass = this->playerDensity * this->playerRadius;
-
-        // Linear movement
+        // Scene logic
         {
-            auto forceMagnitude = 500.0f * playerMass;
-            if (this->input->GetKeyDown(KEY_S)) {
-                Vector2 direction = playerForwardDirection;
-                this->Rotate2D(direction, 180.0);
-                playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
-            }
-            if (this->input->GetKeyDown(KEY_W)) {
-                Vector2 direction = playerForwardDirection;
-                playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
-            }
-            if (this->input->GetKeyDown(KEY_A)) {
-                Vector2 direction = playerForwardDirection;
-                this->Rotate2D(direction, 90.0);
-                playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
-            }
-            if (this->input->GetKeyDown(KEY_D)) {
-                Vector2 direction = playerForwardDirection;
-                this->Rotate2D(direction, -90.0);
-                playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
+            static const std::unordered_map<size_t,std::function<void(Main*)>> m{
+                {Main::sceneNameToIdx["patience"], [&](Main* thiz){
+                    // TODO make door go up when it reaches the bottom.
+                    std::cout << steps << std::endl;
+                    auto door = thiz->scene->GetChild("Door");
+                    auto body = door->GetComponent<RigidBody2D>();
+                    auto ypos = door->GetPosition().y_;
+                    if (ypos < 0.0f || ypos > thiz->GetWindowHeight()) {
+                        body->SetLinearVelocity(-body->GetLinearVelocity());
+                    }
+                }}
+            };
+            static const auto end = m.end();
+            auto it = m.find(this->sceneIdx);
+            if (it != end) {
+                it->second(this);
             }
         }
 
-        // Rotate
-        auto torqueMagnitude = 20.0f * playerMass;
-        if (this->input->GetKeyDown(KEY_Q)) {
-            playerBody->ApplyTorque(torqueMagnitude, true);
-        }
-        if (this->input->GetKeyDown(KEY_E)) {
-            playerBody->ApplyTorque(-torqueMagnitude, true);
+        // Act
+        {
+            auto playerBody = this->playerNode->GetComponent<RigidBody2D>();
+            auto playerMass = this->playerDensity * this->playerRadius;
+
+            // Linear movement
+            {
+                auto forceMagnitude = 500.0f * playerMass;
+                if (this->input->GetKeyDown(KEY_S)) {
+                    Vector2 direction = playerForwardDirection;
+                    this->Rotate2D(direction, 180.0);
+                    playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
+                }
+                if (this->input->GetKeyDown(KEY_W)) {
+                    Vector2 direction = playerForwardDirection;
+                    playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
+                }
+                if (this->input->GetKeyDown(KEY_A)) {
+                    Vector2 direction = playerForwardDirection;
+                    this->Rotate2D(direction, 90.0);
+                    playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
+                }
+                if (this->input->GetKeyDown(KEY_D)) {
+                    Vector2 direction = playerForwardDirection;
+                    this->Rotate2D(direction, -90.0);
+                    playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
+                }
+            }
+
+            // Rotate
+            auto torqueMagnitude = 20.0f * playerMass;
+            if (this->input->GetKeyDown(KEY_Q)) {
+                playerBody->ApplyTorque(torqueMagnitude, true);
+            }
+            if (this->input->GetKeyDown(KEY_E)) {
+                playerBody->ApplyTorque(-torqueMagnitude, true);
+            }
         }
 
         if (false) {
@@ -476,5 +491,8 @@ private:
         text->SetText(title);
     }
 };
+
+std::map<String,size_t> Main::sceneNameToIdx;
+Main::_StaticConstructor Main::_staticConstructor;
 
 URHO3D_DEFINE_APPLICATION_MAIN(Main);

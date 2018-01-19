@@ -1,11 +1,14 @@
 #ifndef COMMON_HPP
 #define COMMON_HPP
 
+#include <cassert>
 #include <cmath>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <map>
 #include <sstream>
+#include <unordered_map>
 #include <vector>
 
 #include <Urho3D/Core/CoreEvents.h>
