@@ -11,6 +11,7 @@ TODO:
 using namespace Urho3D;
 
 static const StringHash IS_FOOD("IsFood");
+static const StringHash RESPAWN("Respawn");
 
 class Main : public Common {
 public:
@@ -30,7 +31,7 @@ public:
         // Scene
         {
             std::unordered_map<size_t,std::function<void()>> {
-                {Main::sceneNameToIdx["apple-good"], [&](){
+                {Main::sceneNameToIdx.at("apples"), [&](){
                     this->SetTitle("Apples are good");
                     this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
@@ -39,8 +40,8 @@ public:
                     for (auto i = 0u; i < napples; ++i)
                         this->CreateRandomAppleNode();
                 }},
-                {Main::sceneNameToIdx["curiosity"], [&](){
-                    this->SetTitle("Curiosity is necessary");
+                {Main::sceneNameToIdx.at("hole-top-bottom"), [&](){
+                    this->SetTitle("I don't see no apple");
                     this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
@@ -55,7 +56,7 @@ public:
                         shape->SetRestitution(0.0);
                     }
                 }},
-                {Main::sceneNameToIdx["topology"], [&](){
+                {Main::sceneNameToIdx.at("hole-top"), [&](){
                     this->SetTitle("Topology");
                     this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
@@ -71,8 +72,8 @@ public:
                         shape->SetRestitution(0.0);
                     }
                 }},
-                {Main::sceneNameToIdx["out-of-reach"], [&](){
-                    this->SetTitle("Out of reach");
+                {Main::sceneNameToIdx.at("small-hole"), [&](){
+                    this->SetTitle("I can't get through here");
                     this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
@@ -95,7 +96,7 @@ public:
                         node->Translate(Vector2(2.0f * this->GetWindowHeight() / 8.0f + this->playerRadius, 0.0f));
                     }
                 }},
-                {Main::sceneNameToIdx["patience"], [&](){
+                {Main::sceneNameToIdx.at("patrol-door"), [&](){
                     this->SetTitle("Patience");
                     this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
@@ -184,11 +185,11 @@ private:
         public:
             _StaticConstructor() {
                 static std::vector<String> scenes = {
-                    "apple-good",
-                    "curiosity",
-                    "topology",
-                    "out-of-reach",
-                    "patience"
+                    "apples",
+                    "hole-top-bottom",
+                    "hole-top",
+                    "small-hole",
+                    "patrol-door",
                 };
                 decltype(scenes)::size_type i = 0;
                 for (const auto& scene : scenes) {
@@ -226,11 +227,16 @@ private:
         this->SetSprite(node, shape, this->playerSprite);
     }
 
-    bool CreateAppleNode(const Vector2& position, float rotation = 0.0f) {
+    bool CreateAppleNode(
+        const Vector2& position,
+        float rotation = 0.0f,
+        bool respawn = true
+    ) {
         auto node = this->scene->CreateChild("Apple");
         node->SetPosition(position);
         node->SetRotation(Quaternion(rotation));
         node->SetVar(IS_FOOD, true);
+        node->SetVar(RESPAWN, respawn);
         auto body = node->CreateComponent<RigidBody2D>();
         body->SetBodyType(BT_DYNAMIC);
         body->SetBullet(true);
@@ -321,7 +327,9 @@ private:
         if (player && otherNode->GetVar(IS_FOOD).GetBool()) {
             this->SetScore(this->score + 1.0f);
             otherNode->Remove();
-            this->CreateRandomAppleNode();
+            if (otherNode->GetVar(RESPAWN).GetBool()) {
+                this->CreateRandomAppleNode();
+            }
         }
     }
 
@@ -406,7 +414,7 @@ private:
         // Scene logic
         {
             static const std::unordered_map<size_t,std::function<void(Main*)>> m{
-                {Main::sceneNameToIdx["patience"], [&](Main* thiz){
+                {Main::sceneNameToIdx["door-patrol"], [&](Main* thiz){
                     auto door = thiz->scene->GetChild("Door");
                 }}
             };
