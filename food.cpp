@@ -207,7 +207,7 @@ private:
     size_t sceneIdx;
     std::map<Node*,std::map<Node*,std::vector<ContactData>>> contactDataMap;
 
-    virtual bool CreatePlayerNode(const Vector2& position, float rotation = 0.0f) {
+    bool CreatePlayerNode(const Vector2& position, float rotation = 0.0f) {
         auto& node = this->playerNode;
         node = this->scene->CreateChild("Player");
         node->SetPosition(position);
@@ -226,7 +226,7 @@ private:
         this->SetSprite(node, shape, this->playerSprite);
     }
 
-    virtual bool CreateAppleNode(const Vector2& position, float rotation = 0.0f) {
+    bool CreateAppleNode(const Vector2& position, float rotation = 0.0f) {
         auto node = this->scene->CreateChild("Apple");
         node->SetPosition(position);
         node->SetRotation(Quaternion(rotation));
@@ -263,11 +263,11 @@ private:
         return true;
     }
 
-    virtual void CreateRandomAppleNode() {
+    void CreateRandomAppleNode() {
         while (!this->CreateAppleNode(Vector2(Random(), Random()) * this->GetWindowWidth(), Random() * 360.0f));
     }
 
-    virtual void CreateWallNodes() {
+    void CreateWallNodes() {
         Node *bottomWallNode;
         {
             bottomWallNode = this->scene->CreateChild("BottomWall");
