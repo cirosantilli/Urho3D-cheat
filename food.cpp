@@ -16,6 +16,7 @@ class Main : public Common {
 public:
     Main(Context* context) : Common(context) {
         this->sceneIdx = 0;
+        context->RegisterFactory<MaxDistComponent>();
     }
     virtual void StartExtra() override {
 
@@ -124,12 +125,14 @@ public:
                         auto node = bottomSeparatorWallNode->Clone();
                         node->SetName("Door");
                         node->SetPosition(Vector2(
-                            bottomSeparatorWallNode->GetPosition2D().x_ - this->wallWidth,
-                            this->GetWindowHeight() - bottomSeparatorLength / 2.0f
+                            bottomSeparatorWallNode->GetPosition2D().x_,
+                            this->GetWindowHeight() / 2.0f
                         ));
+                        auto maxDistLogicComponent = node->CreateComponent<MaxDistComponent>();
+                        maxDistLogicComponent->SetSpeed(Vector2::RIGHT * this->GetWindowWidth() / 4.0f);
+                        maxDistLogicComponent->SetMaxDist((this->GetWindowWidth() -bottomSeparatorLength) / 2.0f);
                         auto body = node->GetComponent<RigidBody2D>();
                         body->SetBodyType(BT_KINEMATIC);
-                        body->SetLinearVelocity(Vector2::DOWN * this->GetWindowWidth() / 5.0f);
                     }
                 }}
             }[this->sceneIdx]();
@@ -398,18 +401,13 @@ private:
             }
         }
 
+#if 0
+        // This should be avoided, components should be favored.
         // Scene logic
         {
             static const std::unordered_map<size_t,std::function<void(Main*)>> m{
                 {Main::sceneNameToIdx["patience"], [&](Main* thiz){
-                    // TODO make door go up when it reaches the bottom.
-                    std::cout << steps << std::endl;
                     auto door = thiz->scene->GetChild("Door");
-                    auto body = door->GetComponent<RigidBody2D>();
-                    auto ypos = door->GetPosition().y_;
-                    if (ypos < 0.0f || ypos > thiz->GetWindowHeight()) {
-                        body->SetLinearVelocity(-body->GetLinearVelocity());
-                    }
                 }}
             };
             static const auto end = m.end();
@@ -418,6 +416,7 @@ private:
                 it->second(this);
             }
         }
+#endif
 
         // Act
         {

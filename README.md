@@ -17,6 +17,7 @@ Build and run a demo:
     1.  [scale_sprite.cpp](scale_sprite.cpp)
     1.  [velocity_stop.cpp](velocity_stop.cpp)
     1.  [text.cpp](text.cpp)
+    1.  [logic_component.cpp](logic_component.cpp)
 1.  More interesting scenes
     1.  [pong.cpp](pong.cpp)
     1.  [biped.cpp](biped.cpp)

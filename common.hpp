@@ -30,6 +30,7 @@
 #include <Urho3D/Math/StringHash.h>
 #include <Urho3D/Physics/PhysicsEvents.h>
 #include <Urho3D/Resource/ResourceCache.h>
+#include <Urho3D/Scene/LogicComponent.h>
 #include <Urho3D/Scene/Node.h>
 #include <Urho3D/Scene/Scene.h>
 #include <Urho3D/Scene/SceneEvents.h>
@@ -303,6 +304,27 @@ protected:
     /// Start steps that are not rerun when restart the scene,
     /// only the first time the application starts.
     virtual void StartOnce() {}
+};
+
+/// Move up to a given maximum distance from spawn point, then turn around.
+class MaxDistComponent : public LogicComponent {
+public:
+    MaxDistComponent(Context* context) : LogicComponent(context) {}
+    virtual void Start() {
+        // Cannot use node_ yet on constructor. Must use it here instead.
+        this->initialPosition = this->node_->GetPosition2D();
+    }
+    virtual void Update(float timeStep) {
+        this->node_->Translate(this->speed * timeStep);
+        if ((this->node_->GetPosition2D() - this->initialPosition).Length() > this->maxDist) {
+            this->speed *= -1.0f;
+        }
+    }
+    void SetSpeed(Vector2 speed) { this->speed = speed; }
+    void SetMaxDist(float maxDist) { this->maxDist = maxDist; }
+private:
+    Vector2 initialPosition, speed;
+    float maxDist;
 };
 
 #endif
