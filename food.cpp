@@ -17,6 +17,8 @@ class Main : public Common {
 public:
     Main(Context* context) : Common(context) {
         this->sceneIdx = 0;
+        context->RegisterFactory<AppleButtonComponent>();
+        context->RegisterFactory<AppleEnableButtonComponent>();
         context->RegisterFactory<MaxDistComponent>();
     }
     virtual void StartExtra() override {
@@ -24,8 +26,8 @@ public:
         // Application state.
         this->text = this->ui->GetRoot()->CreateChild<Text>();
         this->text->SetFont(this->font, 20);
-        this->text->SetAlignment(HA_RIGHT, VA_TOP);
-        this->text->SetPosition(-10, 10);
+        this->text->SetAlignment(HA_RIGHT, VA_BOTTOM);
+        this->text->SetPosition(-10, -10);
         this->SetScore(0.0f);
 
         // Scene
@@ -135,7 +137,25 @@ public:
                         auto body = node->GetComponent<RigidBody2D>();
                         body->SetBodyType(BT_KINEMATIC);
                     }
-                }}
+                }},
+                {Main::sceneNameToIdx.at("apple-button"), [&](){
+                    this->SetTitle("What does this button do?");
+                    this->windowWidth = 20.0f * this->playerRadius;
+                    this->CreateWallNodes();
+                    this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+
+                    auto node = this->scene->CreateChild("Button");
+                    node->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 2.0f));
+                    auto body = node->CreateComponent<RigidBody2D>();
+                    auto shape = node->CreateComponent<CollisionCircle2D>();
+                    shape->SetDensity(this->playerDensity);
+                    shape->SetFriction(0.0f);
+                    shape->SetRadius(this->playerRadius);
+                    shape->SetRestitution(this->playerRestitution);
+                    this->SetSprite(node, shape, this->buttonSprite);
+                    auto appleButtonComponent = node->CreateComponent<AppleButtonComponent>();
+                    appleButtonComponent->Init(this);
+                }},
             }[this->sceneIdx]();
         }
     }
@@ -160,11 +180,60 @@ public:
 
         this->playerSprite = this->resourceCache->GetResource<Sprite2D>("./baby-face.png");
         this->appleSprite = this->resourceCache->GetResource<Sprite2D>("./shiny-apple.png");
+        this->buttonSprite = this->resourceCache->GetResource<Sprite2D>("./button-finger.png");
     }
 private:
+    class AppleButtonComponent : public Component {
+        URHO3D_OBJECT(AppleButtonComponent, Component);
+    public:
+        AppleButtonComponent(Context* context) : Component(context) {}
+        void Init(Main *main) {
+            this->main = main;
+        }
+        void SetActive(bool active) {
+            this->active = active;
+        }
+    protected:
+        virtual void OnNodeSet(Node* node) override {
+            if (node) {
+                this->SubscribeToEvent(node, E_NODEBEGINCONTACT2D, URHO3D_HANDLER(AppleButtonComponent, HandleNodeBeginContact2D));
+                this->active = true;
+            }
+        };
+    private:
+        Main *main;
+        bool active;
+        void HandleNodeBeginContact2D(StringHash eventType, VariantMap& eventData) {
+            using namespace NodeCollision;
+            if (this->active) {
+                auto *otherBody = static_cast<Node*>(eventData[P_OTHERNODE].GetPtr());
+                Node *appleNode;
+                this->main->CreateRandomAppleNode(appleNode, false);
+                auto appleEnableButtonComponent = appleNode->CreateComponent<AppleEnableButtonComponent>();
+                appleEnableButtonComponent->Init(this);
+                this->active = false;
+            }
+        }
+    };
+
+    class AppleEnableButtonComponent : public Component {
+        URHO3D_OBJECT(AppleEnableButtonComponent, Component);
+    public:
+        AppleEnableButtonComponent(Context* context) : Component(context) {}
+        void Init(AppleButtonComponent *appleButtonComponent) {
+            this->appleButtonComponent = appleButtonComponent;
+        }
+    protected:
+        virtual void OnNodeSet(Node* node) override {
+            if (!node) {
+                appleButtonComponent->SetActive(true);
+            }
+        };
+    private:
+        AppleButtonComponent *appleButtonComponent;
+    };
+
     struct ContactData {
-        ContactData(Vector2 position, float impulse) :
-            position(position), impulse(impulse) {}
         Vector2 position;
         float impulse;
     };
@@ -190,6 +259,7 @@ private:
                     "hole-top",
                     "small-hole",
                     "patrol-door",
+                    "apple-button",
                 };
                 decltype(scenes)::size_type i = 0;
                 for (const auto& scene : scenes) {
@@ -201,7 +271,7 @@ private:
 
     Node *playerNode;
     RigidBody2D *playerBody;
-    Sprite2D *appleSprite, *playerSprite;
+    Sprite2D *appleSprite, *buttonSprite, *playerSprite;
     Text *text;
     float score;
     float windowWidth;
@@ -232,7 +302,17 @@ private:
         float rotation = 0.0f,
         bool respawn = true
     ) {
-        auto node = this->scene->CreateChild("Apple");
+        Node *node;
+        return CreateAppleNode(node, position, rotation, respawn);
+    }
+
+    bool CreateAppleNode(
+        Node *&node,
+        const Vector2& position,
+        float rotation = 0.0f,
+        bool respawn = true
+    ) {
+        node = this->scene->CreateChild("Apple");
         node->SetPosition(position);
         node->SetRotation(Quaternion(rotation));
         node->SetVar(IS_FOOD, true);
@@ -269,8 +349,18 @@ private:
         return true;
     }
 
-    void CreateRandomAppleNode() {
-        while (!this->CreateAppleNode(Vector2(Random(), Random()) * this->GetWindowWidth(), Random() * 360.0f));
+    void CreateRandomAppleNode(bool respawn = true) {
+        Node *node;
+        this->CreateRandomAppleNode(node, respawn);
+    }
+
+    void CreateRandomAppleNode(Node *&node, bool respawn = true) {
+        while (!this->CreateAppleNode(
+            node,
+            Vector2(Random(), Random()) * this->GetWindowWidth(),
+            Random() * 360.0f,
+            respawn
+        ));
     }
 
     void CreateWallNodes() {
@@ -344,8 +434,8 @@ private:
             auto distance = contacts.ReadFloat();
             auto impulse = contacts.ReadFloat();
             // TODO shared pointer here.
-            this->contactDataMap[nodea][nodeb].push_back(ContactData(position, impulse));
-            this->contactDataMap[nodeb][nodea].push_back(ContactData(position, impulse));
+            this->contactDataMap[nodea][nodeb].push_back(ContactData{position, impulse});
+            this->contactDataMap[nodeb][nodea].push_back(ContactData{position, impulse});
             if (false) {
                 std::cout << "contact position " << position.ToString().CString() << std::endl;
                 std::cout << "contact normal " << normal.ToString().CString() << std::endl;
@@ -465,9 +555,9 @@ private:
             }
         }
 
-        if (false) {
-            this->SetScore(this->score - 0.001f);
-        }
+#if 0
+        this->SetScore(this->score - 0.001f);
+#endif
         contactDataMap.clear();
     }
 
@@ -493,7 +583,7 @@ private:
     void SetTitle(String title) {
         auto text = this->ui->GetRoot()->CreateChild<Text>();
         text->SetFont(this->font, 20);
-        text->SetAlignment(HA_LEFT, VA_TOP);
+        text->SetAlignment(HA_CENTER, VA_TOP);
         text->SetPosition(0, 10);
         text->SetText(title);
     }

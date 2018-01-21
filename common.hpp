@@ -77,14 +77,14 @@ public:
             this->resourceCache->AddResourceDir(GetParentPath(__FILE__));
             this->font = this->resourceCache->GetResource<Font>("Fonts/Anonymous Pro.ttf");
             this->ui = this->GetSubsystem<UI>();
-            SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Common, HandleKeyDown));
-            SubscribeToEvent(E_MOUSEBUTTONDOWN, URHO3D_HANDLER(Common, HandleMouseButtonDown));
-            SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Common, HandlePhysicsBeginContact2D));
-            SubscribeToEvent(E_PHYSICSPRESTEP, URHO3D_HANDLER(Common, HandlePhysicsPreStep));
-            SubscribeToEvent(E_PHYSICSUPDATECONTACT2D, URHO3D_HANDLER(Common, HandlePhysicsUpdateContact2D));
-            SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Common, HandlePostRenderUpdate));
-            SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Common, HandleUpdate));
-            StartOnce();
+            this->SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(Common, HandleKeyDown));
+            this->SubscribeToEvent(E_MOUSEBUTTONDOWN, URHO3D_HANDLER(Common, HandleMouseButtonDown));
+            this->SubscribeToEvent(E_PHYSICSBEGINCONTACT2D, URHO3D_HANDLER(Common, HandlePhysicsBeginContact2D));
+            this->SubscribeToEvent(E_PHYSICSPRESTEP, URHO3D_HANDLER(Common, HandlePhysicsPreStep));
+            this->SubscribeToEvent(E_PHYSICSUPDATECONTACT2D, URHO3D_HANDLER(Common, HandlePhysicsUpdateContact2D));
+            this->SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(Common, HandlePostRenderUpdate));
+            this->SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(Common, HandleUpdate));
+            this->StartOnce();
         }
 
         // Scene
@@ -206,8 +206,8 @@ protected:
             constraintMouse->SetCollideConnected(true);
             constraintMouse->SetOtherBody(this->dummyBody);
         }
-        SubscribeToEvent(E_MOUSEMOVE, URHO3D_HANDLER(Common, HandleMouseMove));
-        SubscribeToEvent(E_MOUSEBUTTONUP, URHO3D_HANDLER(Common, HandleMouseButtonUp));
+        this->SubscribeToEvent(E_MOUSEMOVE, URHO3D_HANDLER(Common, HandleMouseMove));
+        this->SubscribeToEvent(E_MOUSEBUTTONUP, URHO3D_HANDLER(Common, HandleMouseButtonUp));
     }
 
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
@@ -219,8 +219,8 @@ protected:
             this->pickedNode->RemoveComponent<ConstraintMouse2D>();
             this->pickedNode = nullptr;
         }
-        UnsubscribeFromEvent(E_MOUSEMOVE);
-        UnsubscribeFromEvent(E_MOUSEBUTTONUP);
+        this->UnsubscribeFromEvent(E_MOUSEMOVE);
+        this->UnsubscribeFromEvent(E_MOUSEBUTTONUP);
     }
 
     void HandleMouseMove(StringHash eventType, VariantMap& eventData) {
