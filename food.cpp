@@ -160,7 +160,6 @@ public:
         }
     }
     virtual void StartOnce() override {
-        // CLI arguments.
         String sceneName;
         auto args = GetArguments();
         decltype(args.Size()) i = 0;
@@ -172,12 +171,10 @@ public:
             }
             ++i;
         }
-
         auto it = this->sceneNameToIdx.find(sceneName);
         if (it != this->sceneNameToIdx.end()) {
             this->sceneIdx = it->second;
         }
-
         this->playerSprite = this->resourceCache->GetResource<Sprite2D>("./baby-face.png");
         this->appleSprite = this->resourceCache->GetResource<Sprite2D>("./shiny-apple.png");
         this->buttonSprite = this->resourceCache->GetResource<Sprite2D>("./button-finger.png");
@@ -397,6 +394,9 @@ private:
         if (key == KEY_N) {
             this->sceneIdx = (this->sceneIdx + 1) % this->sceneNameToIdx.size();
             this->Reset();
+        } else if (key == KEY_P) {
+            this->sceneIdx = (this->sceneIdx == 0 ? this->sceneNameToIdx.size() : this->sceneIdx) - 1;
+            this->Reset();
         }
     }
 
@@ -585,7 +585,9 @@ private:
         text->SetFont(this->font, 20);
         text->SetAlignment(HA_CENTER, VA_TOP);
         text->SetPosition(0, 10);
-        text->SetText(title);
+        std::stringstream ss;
+        ss << this->sceneIdx << " " << title.CString();
+        text->SetText(ss.str().c_str());
     }
 };
 
