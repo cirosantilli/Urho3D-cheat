@@ -34,6 +34,22 @@ public:
         // Scene
         {
             std::unordered_map<size_t,std::function<void()>> {
+                {Main::sceneNameToIdx.at("tutorial"), [&](){
+                    this->SetTitle("Tutorial");
+                    this->CreateWallNodes();
+                    this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    auto text = this->ui->GetRoot()->CreateChild<Text>();
+                    text->SetFont(this->font, 20);
+                    text->SetAlignment(HA_CENTER, VA_CENTER);
+                    text->SetText(
+                        "W: forward\n"
+                        "Q: turn left\n"
+                        "E: turn right\n"
+                        "N: next scene\n"
+                        "P: previous scene\n"
+                        "ESC: quit\n"
+                    );
+                }},
                 {Main::sceneNameToIdx.at("apples"), [&](){
                     this->SetTitle("Apples are good");
                     this->CreateWallNodes();
@@ -138,7 +154,6 @@ public:
                     this->SetTitle("What does this button do?");
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
-
                     auto node = this->scene->CreateChild("Button");
                     node->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 2.0f));
                     auto body = node->CreateComponent<RigidBody2D>();
@@ -246,6 +261,7 @@ private:
         public:
             _StaticConstructor() {
                 static std::vector<String> scenes = {
+                    "tutorial",
                     "apples",
                     "hole-top-bottom",
                     "hole-top",
