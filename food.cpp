@@ -29,13 +29,13 @@ public:
         this->text->SetAlignment(HA_RIGHT, VA_BOTTOM);
         this->text->SetPosition(-10, -10);
         this->SetScore(0.0f);
+        this->windowWidth = 20.0f * this->playerRadius;
 
         // Scene
         {
             std::unordered_map<size_t,std::function<void()>> {
                 {Main::sceneNameToIdx.at("apples"), [&](){
                     this->SetTitle("Apples are good");
-                    this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     unsigned int napples = this->GetWindowWidth() * this->GetWindowHeight() / (100.0f * this->playerRadius * this->playerRadius);
@@ -44,7 +44,6 @@ public:
                 }},
                 {Main::sceneNameToIdx.at("hole-top-bottom"), [&](){
                     this->SetTitle("I don't see no apple");
-                    this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     this->CreateAppleNode(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
@@ -60,7 +59,6 @@ public:
                 }},
                 {Main::sceneNameToIdx.at("hole-top"), [&](){
                     this->SetTitle("Topology");
-                    this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     this->CreateAppleNode(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
@@ -76,7 +74,6 @@ public:
                 }},
                 {Main::sceneNameToIdx.at("small-hole"), [&](){
                     this->SetTitle("I can't get through here");
-                    this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     this->CreateAppleNode(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
@@ -100,7 +97,6 @@ public:
                 }},
                 {Main::sceneNameToIdx.at("patrol-door"), [&](){
                     this->SetTitle("Patience");
-                    this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     this->CreateAppleNode(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
@@ -140,7 +136,6 @@ public:
                 }},
                 {Main::sceneNameToIdx.at("apple-button"), [&](){
                     this->SetTitle("What does this button do?");
-                    this->windowWidth = 20.0f * this->playerRadius;
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
 
