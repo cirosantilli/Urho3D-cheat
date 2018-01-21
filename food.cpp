@@ -1,9 +1,5 @@
 /*
 One agent eats apples and gets happy.
-
-TODO:
-
-- walking over this surface is slower
 */
 
 #include "common.hpp"
