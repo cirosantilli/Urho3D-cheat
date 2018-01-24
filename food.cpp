@@ -15,7 +15,6 @@ public:
         this->sceneIdx = 0;
         context->RegisterFactory<AppleButtonsAndChildComponent>();
         context->RegisterFactory<AppleButtonsAndParentComponent>();
-        context->RegisterFactory<AppleEnableButtonsComponent>();
         context->RegisterFactory<MaxDistComponent>();
     }
     virtual void StartExtra() override {
@@ -243,18 +242,10 @@ private:
                 hit = true;
             }
             if (this->active && this->nButtonsHit == this->buttonsHit.size()) {
-                Node *appleNode;
-                this->main->CreateRandomAppleNode(appleNode, false);
-                auto appleEnableButtonComponent = appleNode->CreateComponent<AppleEnableButtonsComponent>();
-                appleEnableButtonComponent->Init(this);
+                Node *apple;
+                this->main->CreateRandomAppleNode(apple, false);
+                this->SubscribeToEvent(apple, "Eaten", URHO3D_HANDLER(AppleButtonsAndParentComponent, HandleAppleEaten));
                 this->active = false;
-            }
-        }
-        void Activate() {
-            this->nButtonsHit = 0;
-            this->active = true;
-            for (auto &entry : this->buttonsHit) {
-                entry.second = false;
             }
         }
     private:
@@ -262,23 +253,13 @@ private:
         std::map<Node*,bool> buttonsHit;
         decltype(buttonsHit)::size_type nButtonsHit;
         bool active;
-    };
-
-    class AppleEnableButtonsComponent : public Component {
-        URHO3D_OBJECT(AppleEnableButtonsComponent, Component);
-    public:
-        AppleEnableButtonsComponent(Context* context) : Component(context) {}
-        void Init(AppleButtonsAndParentComponent *appleButtonsComponent) {
-            this->appleButtonsComponent = appleButtonsComponent;
-        }
-    protected:
-        virtual void OnNodeSet(Node* node) override {
-            if (!node) {
-                appleButtonsComponent->Activate();
+        void HandleAppleEaten(StringHash eventType, VariantMap& eventData) {
+            this->nButtonsHit = 0;
+            this->active = true;
+            for (auto &entry : this->buttonsHit) {
+                entry.second = false;
             }
-        };
-    private:
-        AppleButtonsAndParentComponent *appleButtonsComponent;
+        }
     };
 
     struct ContactData {
@@ -481,6 +462,7 @@ private:
         }
         if (player && otherNode->GetVar(IS_FOOD).GetBool()) {
             this->SetScore(this->score + 1.0f);
+            otherNode->SendEvent("Eaten");
             otherNode->Remove();
             if (otherNode->GetVar(RESPAWN).GetBool()) {
                 this->CreateRandomAppleNode();
