@@ -13,10 +13,8 @@ class Main : public Common {
 public:
     Main(Context* context) : Common(context) {
         this->sceneIdx = 0;
-        context->RegisterFactory<AppleButtonComponent>();
         context->RegisterFactory<AppleButtonsAndChildComponent>();
         context->RegisterFactory<AppleButtonsAndParentComponent>();
-        context->RegisterFactory<AppleEnableButtonComponent>();
         context->RegisterFactory<AppleEnableButtonsComponent>();
         context->RegisterFactory<MaxDistComponent>();
     }
@@ -153,16 +151,20 @@ public:
                     this->SetTitle("What does this button do?");
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
-                    auto node = this->scene->CreateChild("Button");
-                    this->InitButtonNode(node);
-                    node->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 2.0f));
-                    auto appleButtonComponent = node->CreateComponent<AppleButtonComponent>();
-                    appleButtonComponent->Init(this);
+                    auto buttonsNode = this->scene->CreateChild("Buttons");
+                    auto appleButtonsAndParentComponent = buttonsNode->CreateComponent<AppleButtonsAndParentComponent>();
+                    appleButtonsAndParentComponent->Init(this);
+                    auto button = buttonsNode->CreateChild("button");
+                    this->InitButtonNode(button);
+                    button->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 2.0f));
+                    button->CreateComponent<AppleButtonsAndChildComponent>();
+                    appleButtonsAndParentComponent->AddChildButton(button);
                 }},
                 {Main::sceneNameToIdx.at("apple-buttons-and"), [&](){
                     this->SetTitle("And now there are two");
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+
                     auto buttonsNode = this->scene->CreateChild("Buttons");
                     auto appleButtonsAndParentComponent = buttonsNode->CreateComponent<AppleButtonsAndParentComponent>();
                     appleButtonsAndParentComponent->Init(this);
@@ -204,37 +206,6 @@ public:
         this->buttonSprite = this->resourceCache->GetResource<Sprite2D>("./button-finger.png");
     }
 private:
-    class AppleButtonComponent : public Component {
-        URHO3D_OBJECT(AppleButtonComponent, Component);
-    public:
-        AppleButtonComponent(Context* context) : Component(context) {}
-        void Init(Main *main) {
-            this->main = main;
-        }
-        void Activate() {
-            this->active = true;
-        }
-    protected:
-        virtual void OnNodeSet(Node* node) override {
-            if (node) {
-                this->SubscribeToEvent(node, E_NODEBEGINCONTACT2D, URHO3D_HANDLER(AppleButtonComponent, HandleNodeBeginContact2D));
-                this->active = true;
-            }
-        };
-    private:
-        Main *main;
-        bool active;
-        void HandleNodeBeginContact2D(StringHash eventType, VariantMap& eventData) {
-            if (this->active) {
-                Node *appleNode;
-                this->main->CreateRandomAppleNode(appleNode, false);
-                auto appleEnableButtonComponent = appleNode->CreateComponent<AppleEnableButtonComponent>();
-                appleEnableButtonComponent->Init(this);
-                this->active = false;
-            }
-        }
-    };
-
     class AppleButtonsAndChildComponent : public Component {
         URHO3D_OBJECT(AppleButtonsAndChildComponent, Component);
     public:
@@ -291,23 +262,6 @@ private:
         std::map<Node*,bool> buttonsHit;
         decltype(buttonsHit)::size_type nButtonsHit;
         bool active;
-    };
-
-    class AppleEnableButtonComponent : public Component {
-        URHO3D_OBJECT(AppleEnableButtonComponent, Component);
-    public:
-        AppleEnableButtonComponent(Context* context) : Component(context) {}
-        void Init(AppleButtonComponent *appleButtonComponent) {
-            this->appleButtonComponent = appleButtonComponent;
-        }
-    protected:
-        virtual void OnNodeSet(Node* node) override {
-            if (!node) {
-                appleButtonComponent->Activate();
-            }
-        };
-    private:
-        AppleButtonComponent *appleButtonComponent;
     };
 
     class AppleEnableButtonsComponent : public Component {
