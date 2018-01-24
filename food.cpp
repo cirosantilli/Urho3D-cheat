@@ -14,7 +14,10 @@ public:
     Main(Context* context) : Common(context) {
         this->sceneIdx = 0;
         context->RegisterFactory<AppleButtonComponent>();
+        context->RegisterFactory<AppleButtonsAndChildComponent>();
+        context->RegisterFactory<AppleButtonsAndParentComponent>();
         context->RegisterFactory<AppleEnableButtonComponent>();
+        context->RegisterFactory<AppleEnableButtonsComponent>();
         context->RegisterFactory<MaxDistComponent>();
     }
     virtual void StartExtra() override {
@@ -25,7 +28,7 @@ public:
         this->text->SetAlignment(HA_RIGHT, VA_BOTTOM);
         this->text->SetPosition(-10, -10);
         this->SetScore(0.0f);
-        this->windowWidth = 20.0f * this->playerRadius;
+        this->windowWidth = 20.0f * Main::playerRadius;
 
         // Scene
         {
@@ -50,7 +53,7 @@ public:
                     this->SetTitle("Apples are good");
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
-                    unsigned int napples = this->GetWindowWidth() * this->GetWindowHeight() / (100.0f * this->playerRadius * this->playerRadius);
+                    unsigned int napples = this->GetWindowWidth() * this->GetWindowHeight() / (100.0f * Main::playerRadius * Main::playerRadius);
                     for (auto i = 0u; i < napples; ++i)
                         this->CreateRandomAppleNode();
                 }},
@@ -94,7 +97,7 @@ public:
                         auto& node = bottomSeparatorWallNode;
                         node->SetPosition(Vector2(
                             this->GetWindowWidth() / 2.0,
-                            3.0f * this->GetWindowHeight() / 8.0f - this->playerRadius / 2.0f
+                            3.0f * this->GetWindowHeight() / 8.0f - Main::playerRadius / 2.0f
                         ));
                         node->SetRotation(Quaternion(90.0f));
                         node->CreateComponent<RigidBody2D>();
@@ -104,7 +107,7 @@ public:
                     } {
                         auto node = bottomSeparatorWallNode->Clone();
                         node->SetName("SeparatorWallTop");
-                        node->Translate(Vector2(2.0f * this->GetWindowHeight() / 8.0f + this->playerRadius, 0.0f));
+                        node->Translate(Vector2(2.0f * this->GetWindowHeight() / 8.0f + Main::playerRadius, 0.0f));
                     }
                 }},
                 {Main::sceneNameToIdx.at("patrol-door"), [&](){
@@ -113,7 +116,7 @@ public:
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     this->CreateAppleNode(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     auto bottomSeparatorWallNode = this->scene->CreateChild("SeparatorWallBottom");
-                    auto bottomSeparatorLength = (this->GetWindowHeight() - 3.0f * this->playerRadius) / 2.0f;
+                    auto bottomSeparatorLength = (this->GetWindowHeight() - 3.0f * Main::playerRadius) / 2.0f;
                     {
                         auto& node = bottomSeparatorWallNode;
                         node->SetPosition(Vector2(
@@ -151,16 +154,31 @@ public:
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     auto node = this->scene->CreateChild("Button");
+                    this->InitButtonNode(node);
                     node->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 2.0f));
-                    auto body = node->CreateComponent<RigidBody2D>();
-                    auto shape = node->CreateComponent<CollisionCircle2D>();
-                    shape->SetDensity(this->playerDensity);
-                    shape->SetFriction(0.0f);
-                    shape->SetRadius(this->playerRadius);
-                    shape->SetRestitution(this->playerRestitution);
-                    this->SetSprite(node, shape, this->buttonSprite);
                     auto appleButtonComponent = node->CreateComponent<AppleButtonComponent>();
                     appleButtonComponent->Init(this);
+                }},
+                {Main::sceneNameToIdx.at("apple-buttons-and"), [&](){
+                    this->SetTitle("And now there are two");
+                    this->CreateWallNodes();
+                    this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    auto buttonsNode = this->scene->CreateChild("Buttons");
+                    auto appleButtonsAndParentComponent = buttonsNode->CreateComponent<AppleButtonsAndParentComponent>();
+                    appleButtonsAndParentComponent->Init(this);
+
+                    auto button0 = buttonsNode->CreateChild("Button0");
+                    this->InitButtonNode(button0);
+                    button0->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 4.0f));
+                    button0->CreateComponent<AppleButtonsAndChildComponent>();
+
+                    auto button1 = buttonsNode->CreateChild("Button1");
+                    this->InitButtonNode(button1);
+                    button1->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, 3.0f * this->GetWindowHeight() / 4.0f));
+                    button1->CreateComponent<AppleButtonsAndChildComponent>();
+
+                    appleButtonsAndParentComponent->AddChildButton(button0);
+                    appleButtonsAndParentComponent->AddChildButton(button1);
                 }},
             }[this->sceneIdx]();
         }
@@ -193,7 +211,7 @@ private:
         void Init(Main *main) {
             this->main = main;
         }
-        void SetActive(bool active) {
+        void Activate() {
             this->active = active;
         }
     protected:
@@ -207,9 +225,7 @@ private:
         Main *main;
         bool active;
         void HandleNodeBeginContact2D(StringHash eventType, VariantMap& eventData) {
-            using namespace NodeCollision;
             if (this->active) {
-                auto *otherBody = static_cast<Node*>(eventData[P_OTHERNODE].GetPtr());
                 Node *appleNode;
                 this->main->CreateRandomAppleNode(appleNode, false);
                 auto appleEnableButtonComponent = appleNode->CreateComponent<AppleEnableButtonComponent>();
@@ -217,6 +233,64 @@ private:
                 this->active = false;
             }
         }
+    };
+
+    class AppleButtonsAndChildComponent : public Component {
+        URHO3D_OBJECT(AppleButtonsAndChildComponent, Component);
+    public:
+        AppleButtonsAndChildComponent(Context* context) : Component(context) {}
+    protected:
+        virtual void OnNodeSet(Node* node) override {
+            if (node) {
+                this->SubscribeToEvent(node, E_NODEBEGINCONTACT2D, URHO3D_HANDLER(AppleButtonsAndChildComponent, HandleNodeBeginContact2D));
+            }
+        };
+    private:
+        void HandleNodeBeginContact2D(StringHash eventType, VariantMap& eventData) {
+            auto node = this->GetNode();
+            node->GetParent()->GetComponent<AppleButtonsAndParentComponent>()->ButtonHit(node);
+        }
+    };
+
+    class AppleButtonsAndParentComponent : public Component {
+        URHO3D_OBJECT(AppleButtonsAndParentComponent, Component);
+    public:
+        AppleButtonsAndParentComponent(Context* context) : Component(context) {
+            this->nButtonsHit = 0;
+            this->active = true;
+        }
+        void Init(Main *main) {
+            this->main = main;
+        }
+        void AddChildButton(Node *node) {
+            this->buttonsHit[node] = false;
+        }
+        void ButtonHit(Node *node) {
+            auto &hit = this->buttonsHit.at(node);
+            if (!hit) {
+                this->nButtonsHit++;
+                hit = true;
+            }
+            if (this->active && this->nButtonsHit == this->buttonsHit.size()) {
+                Node *appleNode;
+                this->main->CreateRandomAppleNode(appleNode, false);
+                auto appleEnableButtonComponent = appleNode->CreateComponent<AppleEnableButtonsComponent>();
+                appleEnableButtonComponent->Init(this);
+                this->active = false;
+            }
+        }
+        void Activate() {
+            this->nButtonsHit = 0;
+            this->active = true;
+            for (auto &entry : this->buttonsHit) {
+                entry.second = false;
+            }
+        }
+    private:
+        Main *main;
+        std::map<Node*,bool> buttonsHit;
+        decltype(buttonsHit)::size_type nButtonsHit;
+        bool active;
     };
 
     class AppleEnableButtonComponent : public Component {
@@ -229,17 +303,55 @@ private:
     protected:
         virtual void OnNodeSet(Node* node) override {
             if (!node) {
-                appleButtonComponent->SetActive(true);
+                appleButtonComponent->Activate();
             }
         };
     private:
         AppleButtonComponent *appleButtonComponent;
     };
 
+    class AppleEnableButtonsComponent : public Component {
+        URHO3D_OBJECT(AppleEnableButtonsComponent, Component);
+    public:
+        AppleEnableButtonsComponent(Context* context) : Component(context) {}
+        void Init(AppleButtonsAndParentComponent *appleButtonsComponent) {
+            this->appleButtonsComponent = appleButtonsComponent;
+        }
+    protected:
+        virtual void OnNodeSet(Node* node) override {
+            if (!node) {
+                appleButtonsComponent->Activate();
+            }
+        };
+    private:
+        AppleButtonsAndParentComponent *appleButtonsComponent;
+    };
+
     struct ContactData {
         Vector2 position;
         float impulse;
     };
+
+    static class _StaticConstructor {
+        public:
+            _StaticConstructor() {
+                static std::vector<String> scenes = {
+                    "tutorial",
+                    "apples",
+                    "hole-top-bottom",
+                    "hole-top",
+                    "small-hole",
+                    "patrol-door",
+                    "apple-button",
+                    "apple-buttons-and",
+                };
+                decltype(scenes)::size_type i = 0;
+                for (const auto& scene : scenes) {
+                    sceneNameToIdx.emplace(scene, i);
+                    ++i;
+                }
+            }
+    } _staticConstructor;
 
     static constexpr float playerDensity = 1.0f;
     static constexpr float playerFriction = 1.0f;
@@ -253,25 +365,17 @@ private:
         vec = Vector2(vec3.x_, vec3.y_);
     }
 
-    static class _StaticConstructor {
-        public:
-            _StaticConstructor() {
-                static std::vector<String> scenes = {
-                    "tutorial",
-                    "apples",
-                    "hole-top-bottom",
-                    "hole-top",
-                    "small-hole",
-                    "patrol-door",
-                    "apple-button",
-                };
-                decltype(scenes)::size_type i = 0;
-                for (const auto& scene : scenes) {
-                    sceneNameToIdx.emplace(scene, i);
-                    ++i;
-                }
-            }
-    } _staticConstructor;
+    static void SetSprite(Node *node, CollisionShape2D *shape, Sprite2D *sprite) {
+        auto position = node->GetPosition2D();
+        auto b2Aabb = shape->GetFixture()->GetAABB(0);
+        auto lowerBound = Vector2(b2Aabb.lowerBound.x, b2Aabb.lowerBound.y);
+        auto upperBound = Vector2(b2Aabb.upperBound.x, b2Aabb.upperBound.y);
+        PODVector<RigidBody2D*> rigidBodies;
+        auto aabb = Rect(lowerBound, upperBound);
+        auto staticSprite = node->CreateComponent<StaticSprite2D>();
+        staticSprite->SetSprite(sprite);
+        staticSprite->SetDrawRect(aabb - Rect(position, position));
+    }
 
     Node *playerNode;
     RigidBody2D *playerBody;
@@ -281,25 +385,6 @@ private:
     float windowWidth;
     size_t sceneIdx;
     std::map<Node*,std::map<Node*,std::vector<ContactData>>> contactDataMap;
-
-    bool CreatePlayerNode(const Vector2& position, float rotation = 0.0f) {
-        auto& node = this->playerNode;
-        node = this->scene->CreateChild("Player");
-        node->SetPosition(position);
-        auto& body = this->playerBody;
-        body = node->CreateComponent<RigidBody2D>();
-        body->SetBodyType(BT_DYNAMIC);
-        body->SetLinearDamping(4.0);
-        body->SetAngularDamping(4.0);
-        body->SetBullet(true);
-        auto shape = node->CreateComponent<CollisionCircle2D>();
-        shape->SetDensity(this->playerDensity);
-        shape->SetFriction(0.0f);
-        shape->SetRadius(this->playerRadius);
-        shape->SetRestitution(this->playerRestitution);
-        this->CreateCamera(node, 20.0f * playerRadius);
-        this->SetSprite(node, shape, this->playerSprite);
-    }
 
     bool CreateAppleNode(
         const Vector2& position,
@@ -329,7 +414,7 @@ private:
         // SetTrigger sets the sensor property, but Urho then ignores it on the AABB query.
         shape->SetDensity(1e-06f);
         shape->SetFriction(0.0f);
-        shape->SetRadius(this->playerRadius);
+        shape->SetRadius(Main::playerRadius);
         shape->SetRestitution(this->playerRestitution);
         // TODO use triggers instead of aabb to be more precise.
         // But is it possible without stepping the simulation?
@@ -349,8 +434,27 @@ private:
             node->Remove();
             return false;
         }
-        this->SetSprite(node, shape, this->appleSprite);
+        Main::SetSprite(node, shape, this->appleSprite);
         return true;
+    }
+
+    bool CreatePlayerNode(const Vector2& position, float rotation = 0.0f) {
+        auto& node = this->playerNode;
+        node = this->scene->CreateChild("Player");
+        node->SetPosition(position);
+        auto& body = this->playerBody;
+        body = node->CreateComponent<RigidBody2D>();
+        body->SetBodyType(BT_DYNAMIC);
+        body->SetLinearDamping(4.0);
+        body->SetAngularDamping(4.0);
+        body->SetBullet(true);
+        auto shape = node->CreateComponent<CollisionCircle2D>();
+        shape->SetDensity(Main::playerDensity);
+        shape->SetFriction(0.0f);
+        shape->SetRadius(Main::playerRadius);
+        shape->SetRestitution(Main::playerRestitution);
+        this->CreateCamera(node, 20.0f * playerRadius);
+        Main::SetSprite(node, shape, this->playerSprite);
     }
 
     void CreateRandomAppleNode(bool respawn = true) {
@@ -470,7 +574,7 @@ private:
             auto direction = playerForwardDirection;
             this->Rotate2D(direction, angle);
             auto position = this->playerNode->GetPosition2D();
-            auto startPoint = position + (this->playerRadius * direction);
+            auto startPoint = position + (Main::playerRadius * direction);
             auto endPoint = position + (2.0f * this->GetWindowWidth() * direction);
             PhysicsRaycastResult2D result;
             this->physicsWorld->RaycastSingle(result, startPoint, endPoint);
@@ -526,7 +630,7 @@ private:
         // Act
         {
             auto playerBody = this->playerNode->GetComponent<RigidBody2D>();
-            auto playerMass = this->playerDensity * this->playerRadius;
+            auto playerMass = Main::playerDensity * Main::playerRadius;
 
             // Linear movement
             {
@@ -568,23 +672,21 @@ private:
         contactDataMap.clear();
     }
 
+    void InitButtonNode(Node *node) {
+        auto body = node->CreateComponent<RigidBody2D>();
+        auto shape = node->CreateComponent<CollisionCircle2D>();
+        shape->SetDensity(Main::playerDensity);
+        shape->SetFriction(0.0f);
+        shape->SetRadius(Main::playerRadius);
+        shape->SetRestitution(Main::playerRestitution);
+        Main::SetSprite(node, shape, this->buttonSprite);
+    }
+
     void SetScore(float score) {
         this->score = score;
         std::stringstream ss;
         ss << "Score: " << std::fixed << std::setprecision(0) << score;
         this->text->SetText(ss.str().c_str());
-    }
-
-    void SetSprite(Node *node, CollisionShape2D *shape, Sprite2D *sprite) {
-        auto position = node->GetPosition2D();
-        auto b2Aabb = shape->GetFixture()->GetAABB(0);
-        auto lowerBound = Vector2(b2Aabb.lowerBound.x, b2Aabb.lowerBound.y);
-        auto upperBound = Vector2(b2Aabb.upperBound.x, b2Aabb.upperBound.y);
-        PODVector<RigidBody2D*> rigidBodies;
-        auto aabb = Rect(lowerBound, upperBound);
-        auto staticSprite = node->CreateComponent<StaticSprite2D>();
-        staticSprite->SetSprite(sprite);
-        staticSprite->SetDrawRect(aabb - Rect(position, position));
     }
 
     void SetTitle(String title) {

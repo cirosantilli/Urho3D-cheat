@@ -73,7 +73,7 @@ public:
         if (!this->scene) {
             this->input = this->GetSubsystem<Input>();
             this->input->SetMouseVisible(true);
-            this->resourceCache = GetSubsystem<ResourceCache>();
+            this->resourceCache = this->GetSubsystem<ResourceCache>();
             this->resourceCache->AddResourceDir(GetParentPath(__FILE__));
             this->font = this->resourceCache->GetResource<Font>("Fonts/Anonymous Pro.ttf");
             this->ui = this->GetSubsystem<UI>();
@@ -118,6 +118,10 @@ public:
 
     virtual void Stop() override {}
 protected:
+    static constexpr float cameraSpeed = 1.0;
+    static constexpr float cameraZoomSpeed = 0.5f;
+    static constexpr unsigned int voxelResolution = 100;
+
     bool debugEvents;
     Camera *camera;
     Font *font;
@@ -133,10 +137,6 @@ protected:
     // Generate robot input
     // TODO use a spacial index instead.
     std::vector<std::pair<Vector2, Node *>> worldVoxel;
-
-    static constexpr float cameraSpeed = 1.0;
-    static constexpr float cameraZoomSpeed = 0.5f;
-    static constexpr unsigned int voxelResolution = 100;
 
     void CreateCamera(Node *node, float orthoSize) {
         this->camera = node->CreateComponent<Camera>();
