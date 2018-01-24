@@ -212,7 +212,7 @@ private:
             this->main = main;
         }
         void Activate() {
-            this->active = active;
+            this->active = true;
         }
     protected:
         virtual void OnNodeSet(Node* node) override {
