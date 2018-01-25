@@ -13,8 +13,7 @@ class Main : public Common {
 public:
     Main(Context* context) : Common(context) {
         this->sceneIdx = 0;
-        context->RegisterFactory<AppleButtonsAndChildComponent>();
-        context->RegisterFactory<AppleButtonsAndParentComponent>();
+        context->RegisterFactory<AppleButtonsAndComponent>();
         context->RegisterFactory<MaxDistComponent>();
     }
     virtual void StartExtra() override {
@@ -151,13 +150,12 @@ public:
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     auto buttonsNode = this->scene->CreateChild("Buttons");
-                    auto appleButtonsAndParentComponent = buttonsNode->CreateComponent<AppleButtonsAndParentComponent>();
-                    appleButtonsAndParentComponent->Init(this);
+                    auto appleButtonsAndComponent = buttonsNode->CreateComponent<AppleButtonsAndComponent>();
+                    appleButtonsAndComponent->Init(this);
                     auto button = buttonsNode->CreateChild("button");
                     this->InitButtonNode(button);
                     button->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 2.0f));
-                    button->CreateComponent<AppleButtonsAndChildComponent>();
-                    appleButtonsAndParentComponent->AddChildButton(button);
+                    appleButtonsAndComponent->AddChildButton(button);
                 }},
                 {Main::sceneNameToIdx.at("apple-buttons-and"), [&](){
                     this->SetTitle("And now there are two");
@@ -165,21 +163,19 @@ public:
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
 
                     auto buttonsNode = this->scene->CreateChild("Buttons");
-                    auto appleButtonsAndParentComponent = buttonsNode->CreateComponent<AppleButtonsAndParentComponent>();
-                    appleButtonsAndParentComponent->Init(this);
+                    auto appleButtonsAndComponent = buttonsNode->CreateComponent<AppleButtonsAndComponent>();
+                    appleButtonsAndComponent->Init(this);
 
                     auto button0 = buttonsNode->CreateChild("Button0");
                     this->InitButtonNode(button0);
                     button0->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 4.0f));
-                    button0->CreateComponent<AppleButtonsAndChildComponent>();
 
                     auto button1 = buttonsNode->CreateChild("Button1");
                     this->InitButtonNode(button1);
                     button1->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, 3.0f * this->GetWindowHeight() / 4.0f));
-                    button1->CreateComponent<AppleButtonsAndChildComponent>();
 
-                    appleButtonsAndParentComponent->AddChildButton(button0);
-                    appleButtonsAndParentComponent->AddChildButton(button1);
+                    appleButtonsAndComponent->AddChildButton(button0);
+                    appleButtonsAndComponent->AddChildButton(button1);
                 }},
             }[this->sceneIdx]();
         }
@@ -205,27 +201,13 @@ public:
         this->buttonSprite = this->resourceCache->GetResource<Sprite2D>("./button-finger.png");
     }
 private:
-    class AppleButtonsAndChildComponent : public Component {
-        URHO3D_OBJECT(AppleButtonsAndChildComponent, Component);
+    /**
+     * Spawn a random apple when all (logic AND) given child buttons are hit.
+     */
+    class AppleButtonsAndComponent : public Component {
+        URHO3D_OBJECT(AppleButtonsAndComponent, Component);
     public:
-        AppleButtonsAndChildComponent(Context* context) : Component(context) {}
-    protected:
-        virtual void OnNodeSet(Node* node) override {
-            if (node) {
-                this->SubscribeToEvent(node, E_NODEBEGINCONTACT2D, URHO3D_HANDLER(AppleButtonsAndChildComponent, HandleNodeBeginContact2D));
-            }
-        };
-    private:
-        void HandleNodeBeginContact2D(StringHash eventType, VariantMap& eventData) {
-            auto node = this->GetNode();
-            node->GetParent()->GetComponent<AppleButtonsAndParentComponent>()->ButtonHit(node);
-        }
-    };
-
-    class AppleButtonsAndParentComponent : public Component {
-        URHO3D_OBJECT(AppleButtonsAndParentComponent, Component);
-    public:
-        AppleButtonsAndParentComponent(Context* context) : Component(context) {
+        AppleButtonsAndComponent(Context* context) : Component(context) {
             this->nButtonsHit = 0;
             this->active = true;
         }
@@ -234,19 +216,7 @@ private:
         }
         void AddChildButton(Node *node) {
             this->buttonsHit[node] = false;
-        }
-        void ButtonHit(Node *node) {
-            auto &hit = this->buttonsHit.at(node);
-            if (!hit) {
-                this->nButtonsHit++;
-                hit = true;
-            }
-            if (this->active && this->nButtonsHit == this->buttonsHit.size()) {
-                Node *apple;
-                this->main->CreateRandomAppleNode(apple, false);
-                this->SubscribeToEvent(apple, "Eaten", URHO3D_HANDLER(AppleButtonsAndParentComponent, HandleAppleEaten));
-                this->active = false;
-            }
+            this->SubscribeToEvent(node, E_NODEBEGINCONTACT2D, URHO3D_HANDLER(AppleButtonsAndComponent, HandleChildCollision));
         }
     private:
         Main *main;
@@ -254,10 +224,26 @@ private:
         decltype(buttonsHit)::size_type nButtonsHit;
         bool active;
         void HandleAppleEaten(StringHash eventType, VariantMap& eventData) {
+            auto appleNode = (static_cast<Node*>(this->GetEventSender()));
+            this->UnsubscribeFromEvent(appleNode, "Eaten");
             this->nButtonsHit = 0;
             this->active = true;
             for (auto &entry : this->buttonsHit) {
                 entry.second = false;
+            }
+        }
+        void HandleChildCollision(StringHash eventType, VariantMap& eventData) {
+            auto buttonNode = (static_cast<Node*>(this->GetEventSender()));
+            auto &hit = this->buttonsHit.at(buttonNode);
+            if (!hit) {
+                this->nButtonsHit++;
+                hit = true;
+            }
+            if (this->active && this->nButtonsHit == this->buttonsHit.size()) {
+                Node *apple;
+                this->main->CreateRandomAppleNode(apple, false);
+                this->SubscribeToEvent(apple, "Eaten", URHO3D_HANDLER(AppleButtonsAndComponent, HandleAppleEaten));
+                this->active = false;
             }
         }
     };
@@ -462,7 +448,9 @@ private:
         }
         if (player && otherNode->GetVar(IS_FOOD).GetBool()) {
             this->SetScore(this->score + 1.0f);
-            otherNode->SendEvent("Eaten");
+            VariantMap eventData;
+            eventData["SENDER"] = this;
+            otherNode->SendEvent("Eaten", eventData);
             otherNode->Remove();
             if (otherNode->GetVar(RESPAWN).GetBool()) {
                 this->CreateRandomAppleNode();
