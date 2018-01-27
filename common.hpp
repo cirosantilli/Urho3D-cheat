@@ -310,35 +310,35 @@ protected:
 class MaxDistComponent : public LogicComponent {
 public:
     MaxDistComponent(Context* context) : LogicComponent(context) {}
-    virtual void Start() {
-        this->bounces = 0;
-        // Cannot use node_ yet on constructor. Must use it here instead.
+    virtual void Start() override {
+        this->Reset();
         this->initialPosition = this->node_->GetPosition2D();
-        this->previousPosition = this->initialPosition;
         this->maxBouncesGiven = false;
+        this->previousPosition = this->initialPosition;
     }
-    virtual void Update(float timeStep) {
-        this->node_->Translate2D(this->speed * timeStep);
-        if ((this->node_->GetPosition2D() - this->initialPosition).Length() > this->maxDist) {
-            this->speed *= -1.0f;
-            this->bounces++;
-            if (
+    virtual void Update(float timeStep) override {
+        if (this->active) {
+            this->node_->Translate2D(this->speed * timeStep);
+            if ((this->node_->GetPosition2D() - this->initialPosition).Length() > this->maxDist) {
+                this->speed *= -1.0f;
+                this->bounces++;
+            } else if (
                 this->maxBouncesGiven &&
-                this->bounces == this->maxBounces
-            )
-                this->Remove();
-        } else if (
-            this->maxBouncesGiven &&
-            this->bounces == this->maxBounces &&
-            (
-                (this->initialPosition - this->node_->GetPosition2D()).DotProduct(
-                 this->initialPosition - this->previousPosition) < 0.0f
-            )
-        ) {
-            //this->Remove();
-            std::cout << "asdf" << std::endl;
+                this->bounces == this->maxBounces &&
+                (
+                    (this->initialPosition - this->node_->GetPosition2D()).DotProduct(
+                    this->initialPosition - this->previousPosition) < 0.0f
+                )
+            ) {
+                this->active = false;
+            } else {
+                this->previousPosition = this->node_->GetPosition2D();
+            }
         }
-        this->previousPosition = this->node_->GetPosition2D();
+    }
+    void Reset() {
+        this->bounces = 0;
+        this->active = true;
     }
     void SetSpeed(Vector2 speed) { this->speed = speed; }
     void SetMaxDist(float maxDist) { this->maxDist = maxDist; }
@@ -347,10 +347,10 @@ public:
         this->maxBouncesGiven = true;
     }
 private:
-    Vector2 initialPosition, previousPosition, speed;
+    Vector2 initialPosition, previousPosition, speed, initialSpeed;
     float maxDist;
     unsigned int bounces, maxBounces;
-    bool maxBouncesGiven;
+    bool active, maxBouncesGiven;
 };
 
 #endif

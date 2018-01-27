@@ -13,6 +13,7 @@ class Main : public Common {
 public:
     Main(Context* context) : Common(context) {
         this->sceneIdx = 0;
+        context->RegisterFactory<ActivateDoorButtonComponent>();
         context->RegisterFactory<AppleButtonsAndComponent>();
         context->RegisterFactory<MaxDistComponent>();
     }
@@ -138,9 +139,9 @@ public:
                             bottomSeparatorWallNode->GetPosition2D().x_,
                             this->GetWindowHeight() / 2.0f
                         ));
-                        auto maxDistLogicComponent = node->CreateComponent<MaxDistComponent>();
-                        maxDistLogicComponent->SetSpeed(Vector2::RIGHT * this->GetWindowWidth() / 4.0f);
-                        maxDistLogicComponent->SetMaxDist((this->GetWindowWidth() -bottomSeparatorLength) / 2.0f);
+                        auto maxDistComponent = node->CreateComponent<MaxDistComponent>();
+                        maxDistComponent->SetSpeed(Vector2::RIGHT * this->GetWindowWidth() / 4.0f);
+                        maxDistComponent->SetMaxDist((this->GetWindowWidth() - bottomSeparatorLength) / 2.0f);
                         auto body = node->GetComponent<RigidBody2D>();
                         body->SetBodyType(BT_KINEMATIC);
                     }
@@ -161,29 +162,29 @@ public:
                     this->SetTitle("And now there are two");
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
-
                     auto buttonsNode = this->scene->CreateChild("Buttons");
                     auto appleButtonsAndComponent = buttonsNode->CreateComponent<AppleButtonsAndComponent>();
                     appleButtonsAndComponent->Init(this);
-
-                    auto button0 = buttonsNode->CreateChild("Button0");
-                    this->InitButtonNode(button0);
-                    button0->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 4.0f));
-
-                    auto button1 = buttonsNode->CreateChild("Button1");
-                    this->InitButtonNode(button1);
-                    button1->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, 3.0f * this->GetWindowHeight() / 4.0f));
-
-                    appleButtonsAndComponent->AddChildButton(button0);
-                    appleButtonsAndComponent->AddChildButton(button1);
+                    {
+                        auto button = this->scene->CreateChild("Button0");
+                        this->InitButtonNode(button);
+                        button->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 4.0f));
+                        appleButtonsAndComponent->AddChildButton(button);
+                    }
+                    {
+                        auto button = this->scene->CreateChild("Button1");
+                        this->InitButtonNode(button);
+                        button->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, 3.0f * this->GetWindowHeight() / 4.0f));
+                        appleButtonsAndComponent->AddChildButton(button);
+                    }
                 }},
                 {Main::sceneNameToIdx.at("button-door"), [&](){
                     this->SetTitle("Are buttons and doors related?");
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
-
                     auto bottomSeparatorWallNode = this->scene->CreateChild("SeparatorWallBottom");
                     auto bottomSeparatorLength = (this->GetWindowHeight() - 3.0f * Main::playerRadius) / 2.0f;
+                    MaxDistComponent *maxDistComponent;
                     {
                         auto& node = bottomSeparatorWallNode;
                         node->SetPosition2D(Vector2(
@@ -209,33 +210,28 @@ public:
                             bottomSeparatorWallNode->GetPosition2D().x_,
                             this->GetWindowHeight() / 2.0f
                         ));
-                        auto maxDistLogicComponent = node->CreateComponent<MaxDistComponent>();
-                        maxDistLogicComponent->SetSpeed(Vector2::RIGHT * this->GetWindowWidth() / 4.0f);
-                        maxDistLogicComponent->SetMaxDist((this->GetWindowWidth() -bottomSeparatorLength) / 2.0f);
-                        maxDistLogicComponent->SetMaxBounces(1);
+                        maxDistComponent = node->CreateComponent<MaxDistComponent>();
+                        maxDistComponent->SetSpeed(Vector2::RIGHT * this->GetWindowWidth() / 4.0f);
+                        maxDistComponent->SetMaxDist((this->GetWindowWidth() - bottomSeparatorLength) / 2.0f);
+                        maxDistComponent->SetMaxBounces(1);
                         auto body = node->GetComponent<RigidBody2D>();
                         body->SetBodyType(BT_KINEMATIC);
                     }
-
-                    //auto appleButtonsAndComponent = buttonsNode->CreateComponent<AppleButtonsAndComponent>();
-                    //appleButtonsAndComponent->Init(this);
-
-                    auto button0 = this->scene->CreateChild("Button0");
-                    this->InitButtonNode(button0);
-                    button0->SetPosition(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 4.0f));
-
-                    auto button1 = this->scene->CreateChild("Button1");
-                    this->InitButtonNode(button1);
-                    button1->SetPosition(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 4.0f));
-
-                    //appleButtonsAndComponent->AddChildButton(button0);
-                    //appleButtonsAndComponent->AddChildButton(button1);
-
-                    auto f = [](StringHash eventType, VariantMap& eventData){
-                        std::cout << "asdf" << std::endl;
-                    };
-                    this->SubscribeToEvent(button0, E_NODEBEGINCONTACT2D, f);
-                    this->SubscribeToEvent(button1, E_NODEBEGINCONTACT2D, f);
+                    {
+                        auto button = this->scene->CreateChild("Button0");
+                        this->InitButtonNode(button);
+                        button->SetPosition(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 4.0f));
+                        auto activateDoorButtonComponent = button->CreateComponent<ActivateDoorButtonComponent>();
+                        activateDoorButtonComponent->Init(maxDistComponent);
+                    }
+                    {
+                        auto button = this->scene->CreateChild("button");
+                        this->InitButtonNode(button);
+                        button->SetPosition(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 4.0f));
+                        auto activateDoorButtonComponent = button->CreateComponent<ActivateDoorButtonComponent>();
+                        activateDoorButtonComponent->Init(maxDistComponent);
+                    }
+                    this->CreateRandomAppleNode();
                 }},
             }[this->sceneIdx]();
         }
@@ -258,6 +254,22 @@ public:
         }
     }
 private:
+
+    class ActivateDoorButtonComponent : public Component {
+        URHO3D_OBJECT(ActivateDoorButtonComponent, Component);
+    public:
+        ActivateDoorButtonComponent(Context* context) : Component(context) {}
+        void Init(MaxDistComponent *maxDistComponent) {
+            this->maxDistComponent = maxDistComponent;
+            this->SubscribeToEvent(this->node_, E_NODEBEGINCONTACT2D, URHO3D_HANDLER(ActivateDoorButtonComponent, HandleNodeBeginContact2D));
+        }
+    private:
+        MaxDistComponent *maxDistComponent;
+        void HandleNodeBeginContact2D(StringHash eventType, VariantMap& eventData) {
+            this->maxDistComponent->Reset();
+        }
+    };
+
     /**
      * Spawn a random apple when all (logic AND) given child buttons are hit.
      */
