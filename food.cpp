@@ -177,6 +177,26 @@ public:
                     appleButtonsAndComponent->AddChildButton(button0);
                     appleButtonsAndComponent->AddChildButton(button1);
                 }},
+                {Main::sceneNameToIdx.at("button-door"), [&](){
+                    this->SetTitle("And now there are two");
+                    this->CreateWallNodes();
+                    this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+
+                    auto buttonsNode = this->scene->CreateChild("Buttons");
+                    auto appleButtonsAndComponent = buttonsNode->CreateComponent<AppleButtonsAndComponent>();
+                    appleButtonsAndComponent->Init(this);
+
+                    auto button0 = buttonsNode->CreateChild("Button0");
+                    this->InitButtonNode(button0);
+                    button0->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 4.0f));
+
+                    auto button1 = buttonsNode->CreateChild("Button1");
+                    this->InitButtonNode(button1);
+                    button1->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, 3.0f * this->GetWindowHeight() / 4.0f));
+
+                    appleButtonsAndComponent->AddChildButton(button0);
+                    appleButtonsAndComponent->AddChildButton(button1);
+                }},
             }[this->sceneIdx]();
         }
     }
@@ -196,9 +216,6 @@ public:
         if (it != this->sceneNameToIdx.end()) {
             this->sceneIdx = it->second;
         }
-        this->playerSprite = this->resourceCache->GetResource<Sprite2D>("./baby-face.png");
-        this->appleSprite = this->resourceCache->GetResource<Sprite2D>("./shiny-apple.png");
-        this->buttonSprite = this->resourceCache->GetResource<Sprite2D>("./button-finger.png");
     }
 private:
     /**
@@ -265,6 +282,7 @@ private:
                     "patrol-door",
                     "apple-button",
                     "apple-buttons-and",
+                    "button-door",
                 };
                 decltype(scenes)::size_type i = 0;
                 for (const auto& scene : scenes) {
@@ -300,7 +318,6 @@ private:
 
     Node *playerNode;
     RigidBody2D *playerBody;
-    Sprite2D *appleSprite, *buttonSprite, *playerSprite;
     Text *text;
     float score;
     float windowWidth;
@@ -355,7 +372,7 @@ private:
             node->Remove();
             return false;
         }
-        Main::SetSprite(node, shape, this->appleSprite);
+        Main::SetSprite(node, shape, this->resourceCache->GetResource<Sprite2D>("./shiny-apple.png"));
         return true;
     }
 
@@ -375,7 +392,7 @@ private:
         shape->SetRadius(Main::playerRadius);
         shape->SetRestitution(Main::playerRestitution);
         this->CreateCamera(node, 20.0f * playerRadius);
-        Main::SetSprite(node, shape, this->playerSprite);
+        Main::SetSprite(node, shape, this->resourceCache->GetResource<Sprite2D>("./baby-face.png"));
     }
 
     void CreateRandomAppleNode(bool respawn = true) {
@@ -603,7 +620,7 @@ private:
         shape->SetFriction(0.0f);
         shape->SetRadius(Main::playerRadius);
         shape->SetRestitution(Main::playerRestitution);
-        Main::SetSprite(node, shape, this->buttonSprite);
+        Main::SetSprite(node, shape, this->resourceCache->GetResource<Sprite2D>("./button-finger.png"));
     }
 
     void SetScore(float score) {
