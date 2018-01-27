@@ -21,7 +21,7 @@ public:
         {
             auto& node = this->groundNode;
             node = this->scene->CreateChild("Ground");
-            node->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, groundHeight / 2.0f));
+            node->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, groundHeight / 2.0f));
             node->CreateComponent<RigidBody2D>();
             auto shape = node->CreateComponent<CollisionBox2D>();
             shape->SetSize(Vector2(groundWidth, groundHeight));
@@ -33,7 +33,7 @@ public:
         // Left ball
         {
             this->leftBallNode = this->scene->CreateChild("LeftBall");
-            this->leftBallNode->SetPosition(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+            this->leftBallNode->SetPosition2D(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
             auto body = this->leftBallNode->CreateComponent<RigidBody2D>();
             body->SetBodyType(BT_DYNAMIC);
             auto shape = this->leftBallNode->CreateComponent<CollisionCircle2D>();
@@ -48,7 +48,7 @@ public:
             auto& node = this->rightBallNode;
             node = this->leftBallNode->Clone();
             node->SetName("RightBall");
-            node->SetPosition(Vector2(this->GetWindowWidth() * (3.0f / 4.0f), this->GetWindowHeight() * (3.0f / 4.0f)));
+            node->SetPosition2D(Vector2(this->GetWindowWidth() * (3.0f / 4.0f), this->GetWindowHeight() * (3.0f / 4.0f)));
         }
     }
 private:

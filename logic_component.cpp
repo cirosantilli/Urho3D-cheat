@@ -17,7 +17,7 @@ public:
     }
     virtual void StartExtra() override {
         auto ballNode = this->scene->CreateChild("Ball");
-        ballNode->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 2.0f));
+        ballNode->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 2.0f));
         auto maxDistLogicComponent = ballNode->CreateComponent<MaxDistComponent>();
         // There appears to be no way to have a constructor. Just use setters.
         maxDistLogicComponent->SetSpeed(Vector2::DOWN * this->GetWindowWidth() / 2.0f);

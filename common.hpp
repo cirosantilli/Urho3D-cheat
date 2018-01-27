@@ -241,10 +241,10 @@ protected:
 
         // Camera
         if (this->input->GetKeyDown(KEY_DOWN)) {
-            this->cameraNode->Translate(Vector2::DOWN * cameraStep);
+            this->cameraNode->Translate2D(Vector2::DOWN * cameraStep);
         }
         if (this->input->GetKeyDown(KEY_LEFT)) {
-            this->cameraNode->Translate(Vector2::LEFT * cameraStep);
+            this->cameraNode->Translate2D(Vector2::LEFT * cameraStep);
         }
         if (input->GetKeyDown(KEY_PAGEUP)) {
             this->camera->SetZoom(this->camera->GetZoom() * 1.0f / std::pow(this->cameraZoomSpeed, timeStep));
@@ -253,10 +253,10 @@ protected:
             this->camera->SetZoom(this->camera->GetZoom() * std::pow(this->cameraZoomSpeed, timeStep));
         }
         if (this->input->GetKeyDown(KEY_RIGHT)) {
-            this->cameraNode->Translate(Vector2::RIGHT * cameraStep);
+            this->cameraNode->Translate2D(Vector2::RIGHT * cameraStep);
         }
         if (this->input->GetKeyDown(KEY_UP)) {
-            this->cameraNode->Translate(Vector2::UP * cameraStep);
+            this->cameraNode->Translate2D(Vector2::UP * cameraStep);
         }
 
         // Generate robot voxel input.
@@ -315,7 +315,7 @@ public:
         this->initialPosition = this->node_->GetPosition2D();
     }
     virtual void Update(float timeStep) {
-        this->node_->Translate(this->speed * timeStep);
+        this->node_->Translate2D(this->speed * timeStep);
         if ((this->node_->GetPosition2D() - this->initialPosition).Length() > this->maxDist) {
             this->speed *= -1.0f;
         }

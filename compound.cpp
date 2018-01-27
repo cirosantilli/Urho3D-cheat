@@ -18,7 +18,7 @@ public:
         // Ground
         {
             auto node = this->scene->CreateChild("Ground");
-            node->SetPosition(Vector3(this->GetWindowWidth() / 2.0f, groundHeight / 2.0f, 0.0f));
+            node->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, groundHeight / 2.0f));
             node->CreateComponent<RigidBody2D>();
             auto shape = node->CreateComponent<CollisionBox2D>();
             shape->SetSize(Vector2(groundWidth, groundHeight));
@@ -30,7 +30,7 @@ public:
         // Compound body
         {
             auto node = this->scene->CreateChild("Balls");
-            node->SetPosition(Vector3(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f, 0.0f));
+            node->SetPosition2D(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
             auto body = node->CreateComponent<RigidBody2D>();
             body->SetBodyType(BT_DYNAMIC);
             // Left shape.

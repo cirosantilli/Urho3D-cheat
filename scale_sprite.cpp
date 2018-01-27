@@ -21,7 +21,7 @@ public:
         {
             auto& node = this->groundNode;
             node = this->scene->CreateChild("Ground");
-            node->SetPosition(Vector2(groundWidth / 2.0, groundHeight));
+            node->SetPosition2D(Vector2(groundWidth / 2.0, groundHeight));
             auto body = node->CreateComponent<RigidBody2D>();
             body->SetBodyType(BT_STATIC);
             auto shape = node->CreateComponent<CollisionBox2D>();
@@ -44,7 +44,7 @@ private:
 
     void CreateBox(float x, float y, float width, float height) {
         auto node = this->scene->CreateChild("Box");
-        node->SetPosition(Vector3(x, y));
+        node->SetPosition2D(Vector2(x, y));
         node->SetRotation(Quaternion(0.0f, 0.0f, 30.0f));
         auto box = node->CreateComponent<CollisionBox2D>();
         box->SetDensity(1.0f);

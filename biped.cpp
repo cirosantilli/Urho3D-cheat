@@ -24,7 +24,7 @@ public:
 
 
         auto groundNode = this->scene->CreateChild("Ground");
-        groundNode->SetPosition(Vector3(this->GetWindowWidth() / 2.0f, thickness / 2.0f, 0.0f));
+        groundNode->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, thickness / 2.0f));
         groundNode->CreateComponent<RigidBody2D>();
         {
             auto shape = groundNode->CreateComponent<CollisionBox2D>();
@@ -35,22 +35,22 @@ public:
         } {
             auto node = groundNode->Clone();
             node->SetName("TopWall");
-            node->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() - (thickness / 2.0f)));
+            node->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() - (thickness / 2.0f)));
         } {
             auto node = groundNode->Clone();
             node->SetName("RightWall");
             node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
-            node->SetPosition(Vector2(this->GetWindowWidth() - (thickness / 2.0f), this->GetWindowHeight() / 2.0f));
+            node->SetPosition2D(Vector2(this->GetWindowWidth() - (thickness / 2.0f), this->GetWindowHeight() / 2.0f));
         } {
             auto node = groundNode->Clone();
             node->SetName("LeftWall");
             node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
-            node->SetPosition(Vector2(thickness / 2.0f, this->GetWindowHeight() / 2.0f));
+            node->SetPosition2D(Vector2(thickness / 2.0f, this->GetWindowHeight() / 2.0f));
         }
 
         auto leftCalfNode = groundNode->Clone();
         leftCalfNode->SetName("LeftCalf");
-        leftCalfNode->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, calfLength / 2.0f + thickness));
+        leftCalfNode->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, calfLength / 2.0f + thickness));
         {
             auto body = leftCalfNode->GetComponent<RigidBody2D>();
             body->SetBodyType(BT_DYNAMIC);
@@ -63,11 +63,11 @@ public:
 
         auto rightCalfNode = leftCalfNode->Clone();
         rightCalfNode->SetName("RightCalf");
-        rightCalfNode->Translate(Vector2::RIGHT * 2.0f * (thighLength + thickness));
+        rightCalfNode->Translate2D(Vector2::RIGHT * 2.0f * (thighLength + thickness));
 
         Node *leftThighNode = leftCalfNode->Clone();
         leftThighNode->SetName("LeftleftThigh");
-        leftThighNode->Translate(Vector2(
+        leftThighNode->Translate2D(Vector2(
             thighLength / 2.0f + thickness / 2.0f,
             calfLength / 2.0f + thickness / 2.0f
         ));
@@ -76,7 +76,7 @@ public:
 
         auto rightThighNode = leftCalfNode->Clone();
         rightThighNode->SetName("RightThigh");
-        rightThighNode->Translate(Vector2(
+        rightThighNode->Translate2D(Vector2(
             1.5f * (thighLength + thickness),
             calfLength / 2.0f + thickness / 2.0f
         ));
@@ -85,7 +85,7 @@ public:
 
         auto upperArmNode = leftCalfNode->Clone();
         upperArmNode->SetName("UpperArm");
-        upperArmNode->Translate(Vector2(
+        upperArmNode->Translate2D(Vector2(
             calfLength + thickness,
             thighLength + thickness
         ));
@@ -93,7 +93,7 @@ public:
 
         auto foreArmNode = leftCalfNode->Clone();
         foreArmNode->SetName("ForeArm");
-        foreArmNode->Translate(Vector2(
+        foreArmNode->Translate2D(Vector2(
             calfLength + thickness,
             2.0f * (thighLength + thickness)
         ));
@@ -125,7 +125,7 @@ public:
 
         auto leftFingerNode = leftCalfNode->Clone();
         leftFingerNode->SetName("LeftFinger");
-        leftFingerNode->SetPosition(
+        leftFingerNode->SetPosition2D(
             foreArmNode->GetPosition2D() +
             Vector2(
                 handLength * std::sin(-handAngle),
@@ -140,7 +140,7 @@ public:
 
         auto rightFingerNode = leftFingerNode->Clone();
         rightFingerNode->SetName("RightFinger");
-        rightFingerNode->SetPosition(
+        rightFingerNode->SetPosition2D(
             foreArmNode->GetPosition2D() +
             Vector2(
                 handLength * std::sin(handAngle),
@@ -240,7 +240,7 @@ public:
             auto& node = ballOnHandNode;
             auto body = node->CreateComponent<RigidBody2D>();
             body->SetBodyType(BT_DYNAMIC);
-            node->SetPosition(foreArmNode->GetPosition2D() + Vector2::UP * calfLength * 1.5f);
+            node->SetPosition2D(foreArmNode->GetPosition2D() + Vector2::UP * calfLength * 1.5f);
             auto shape = node->CreateComponent<CollisionCircle2D>();
             shape->SetDensity(density);
             shape->SetFriction(friction);
@@ -250,7 +250,7 @@ public:
 
         auto ballOnFloorNode = ballOnHandNode->Clone();
         ballOnFloorNode->SetName("BallOnFloor");
-        ballOnFloorNode->SetPosition(leftCalfNode->GetPosition() + Vector2::LEFT * calfLength);
+        ballOnFloorNode->SetPosition2D(leftCalfNode->GetPosition2D() + Vector2::LEFT * calfLength);
     }
 private:
     ConstraintRevolute2D

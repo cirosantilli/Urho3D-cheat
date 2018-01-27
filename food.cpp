@@ -60,7 +60,7 @@ public:
                     this->CreateAppleNode(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     {
                         auto node = this->scene->CreateChild("SeparatorWall");
-                        node->SetPosition(Vector2(this->GetWindowWidth() / 2.0, this->GetWindowHeight() / 2.0f));
+                        node->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0, this->GetWindowHeight() / 2.0f));
                         node->SetRotation(Quaternion(90.0f));
                         node->CreateComponent<RigidBody2D>();
                         auto shape = node->CreateComponent<CollisionBox2D>();
@@ -75,7 +75,7 @@ public:
                     this->CreateAppleNode(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     {
                         auto node = this->scene->CreateChild("SeparatorWall");
-                        node->SetPosition(Vector2(this->GetWindowWidth() / 2.0, 3.0f * this->GetWindowHeight() / 8.0f));
+                        node->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0, 3.0f * this->GetWindowHeight() / 8.0f));
                         node->SetRotation(Quaternion(90.0f));
                         node->CreateComponent<RigidBody2D>();
                         auto shape = node->CreateComponent<CollisionBox2D>();
@@ -91,7 +91,7 @@ public:
                     auto bottomSeparatorWallNode = this->scene->CreateChild("SeparatorWallBottom");
                     {
                         auto& node = bottomSeparatorWallNode;
-                        node->SetPosition(Vector2(
+                        node->SetPosition2D(Vector2(
                             this->GetWindowWidth() / 2.0,
                             3.0f * this->GetWindowHeight() / 8.0f - Main::playerRadius / 2.0f
                         ));
@@ -103,7 +103,7 @@ public:
                     } {
                         auto node = bottomSeparatorWallNode->Clone();
                         node->SetName("SeparatorWallTop");
-                        node->Translate(Vector2(2.0f * this->GetWindowHeight() / 8.0f + Main::playerRadius, 0.0f));
+                        node->Translate2D(Vector2(2.0f * this->GetWindowHeight() / 8.0f + Main::playerRadius, 0.0f));
                     }
                 }},
                 {Main::sceneNameToIdx.at("patrol-door"), [&](){
@@ -115,7 +115,7 @@ public:
                     auto bottomSeparatorLength = (this->GetWindowHeight() - 3.0f * Main::playerRadius) / 2.0f;
                     {
                         auto& node = bottomSeparatorWallNode;
-                        node->SetPosition(Vector2(
+                        node->SetPosition2D(Vector2(
                             this->GetWindowWidth() / 2.0f,
                             bottomSeparatorLength / 2.0f
                         ));
@@ -127,14 +127,14 @@ public:
                     } {
                         auto node = bottomSeparatorWallNode->Clone();
                         node->SetName("SeparatorWallTop");
-                        node->SetPosition(Vector2(
+                        node->SetPosition2D(Vector2(
                             bottomSeparatorWallNode->GetPosition2D().x_,
                             this->GetWindowHeight() - bottomSeparatorLength / 2.0f
                         ));
                     } {
                         auto node = bottomSeparatorWallNode->Clone();
                         node->SetName("Door");
-                        node->SetPosition(Vector2(
+                        node->SetPosition2D(Vector2(
                             bottomSeparatorWallNode->GetPosition2D().x_,
                             this->GetWindowHeight() / 2.0f
                         ));
@@ -154,7 +154,7 @@ public:
                     appleButtonsAndComponent->Init(this);
                     auto button = buttonsNode->CreateChild("button");
                     this->InitButtonNode(button);
-                    button->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 2.0f));
+                    button->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 2.0f));
                     appleButtonsAndComponent->AddChildButton(button);
                 }},
                 {Main::sceneNameToIdx.at("apple-buttons-and"), [&](){
@@ -168,11 +168,11 @@ public:
 
                     auto button0 = buttonsNode->CreateChild("Button0");
                     this->InitButtonNode(button0);
-                    button0->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 4.0f));
+                    button0->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() / 4.0f));
 
                     auto button1 = buttonsNode->CreateChild("Button1");
                     this->InitButtonNode(button1);
-                    button1->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, 3.0f * this->GetWindowHeight() / 4.0f));
+                    button1->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, 3.0f * this->GetWindowHeight() / 4.0f));
 
                     appleButtonsAndComponent->AddChildButton(button0);
                     appleButtonsAndComponent->AddChildButton(button1);
@@ -300,7 +300,7 @@ private:
     static std::map<String,size_t> sceneNameToIdx;
 
     static void Rotate2D(Vector2& vec, float angle) {
-        auto vec3 = Quaternion(angle) * vec;
+        auto vec3 = Quaternion(angle) * Vector3(vec);
         vec = Vector2(vec3.x_, vec3.y_);
     }
 
@@ -340,7 +340,7 @@ private:
         bool respawn = true
     ) {
         node = this->scene->CreateChild("Apple");
-        node->SetPosition(position);
+        node->SetPosition2D(position);
         node->SetRotation(Quaternion(rotation));
         node->SetVar(IS_FOOD, true);
         node->SetVar(RESPAWN, respawn);
@@ -379,7 +379,7 @@ private:
     bool CreatePlayerNode(const Vector2& position, float rotation = 0.0f) {
         auto& node = this->playerNode;
         node = this->scene->CreateChild("Player");
-        node->SetPosition(position);
+        node->SetPosition2D(position);
         auto& body = this->playerBody;
         body = node->CreateComponent<RigidBody2D>();
         body->SetBodyType(BT_DYNAMIC);
@@ -413,7 +413,7 @@ private:
         Node *bottomWallNode;
         {
             bottomWallNode = this->scene->CreateChild("BottomWall");
-            bottomWallNode->SetPosition(Vector2(this->GetWindowWidth() / 2.0, this->wallWidth / 2.0f));
+            bottomWallNode->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0, this->wallWidth / 2.0f));
             bottomWallNode->CreateComponent<RigidBody2D>();
             auto shape = bottomWallNode->CreateComponent<CollisionBox2D>();
             shape->SetSize(Vector2(this->GetWindowWidth(), this->wallWidth));
@@ -421,17 +421,17 @@ private:
         } {
             auto node = bottomWallNode->Clone();
             node->SetName("TopWall");
-            node->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() - (this->wallWidth / 2.0f)));
+            node->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() - (this->wallWidth / 2.0f)));
         } {
             auto node = bottomWallNode->Clone();
             node->SetName("RightWall");
             node->SetRotation(Quaternion(90.0f));
-            node->SetPosition(Vector2(this->GetWindowWidth() - (this->wallWidth / 2.0f), this->GetWindowHeight() / 2.0f));
+            node->SetPosition2D(Vector2(this->GetWindowWidth() - (this->wallWidth / 2.0f), this->GetWindowHeight() / 2.0f));
         } {
             auto node = bottomWallNode->Clone();
             node->SetName("LeftWall");
             node->SetRotation(Quaternion(90.0f));
-            node->SetPosition(Vector2(this->wallWidth / 2.0f, this->GetWindowHeight() / 2.0f));
+            node->SetPosition2D(Vector2(this->wallWidth / 2.0f, this->GetWindowHeight() / 2.0f));
         }
     }
 

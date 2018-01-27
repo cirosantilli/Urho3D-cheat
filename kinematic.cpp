@@ -12,7 +12,7 @@ public:
     virtual void StartExtra() override {
         this->physicsWorld->SetGravity(Vector2(0.0f, -this->GetWindowWidth()));
         auto node = this->scene->CreateChild("Ball");
-        node->SetPosition(Vector2(
+        node->SetPosition2D(Vector2(
             this->GetWindowWidth() / 2.0f,
             this->GetWindowHeight() / 2.0f
         ));

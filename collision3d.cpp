@@ -59,7 +59,7 @@ public:
         this->scene->CreateComponent<DebugRenderer>();
         this->scene->CreateComponent<PhysicsWorld>();
         auto physicsWorld = scene->GetComponent<PhysicsWorld>();
-        physicsWorld->SetGravity(Vector2(0.0f, -windowWidth));
+        physicsWorld->SetGravity(Vector3(0.0f, -windowWidth, 0.0f));
         auto cache = GetSubsystem<ResourceCache>();
 
         // Graphics

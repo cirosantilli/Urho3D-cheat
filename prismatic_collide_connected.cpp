@@ -15,7 +15,7 @@ public:
         auto floorWidth = this->GetWindowWidth() / 20.0f;
 
         auto floorNode = this->scene->CreateChild("Floor");
-        floorNode->SetPosition(Vector2(this->GetWindowWidth() / 2.0, this->GetWindowWidth() / 2.0 - floorWidth));
+        floorNode->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0, this->GetWindowWidth() / 2.0 - floorWidth));
         auto floorBody = floorNode->CreateComponent<RigidBody2D>();
         auto shape = floorNode->CreateComponent<CollisionBox2D>();
         shape->SetSize(Vector2(floorLength, floorWidth));
@@ -26,7 +26,7 @@ public:
         // Does not collide.
         {
             auto node = this->scene->CreateChild("Prismatic");
-            node->SetPosition(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() * 3.0f / 4.0f));
+            node->SetPosition2D(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() * 3.0f / 4.0f));
 
             auto body = node->CreateComponent<RigidBody2D>();
             body->SetBodyType(BT_DYNAMIC);
@@ -47,7 +47,7 @@ public:
         // Collides.
         {
             auto node = this->scene->CreateChild("Rope");
-            node->SetPosition(Vector2(this->GetWindowWidth() * 3.0f / 4.0f, this->GetWindowHeight() * 0.75f));
+            node->SetPosition2D(Vector2(this->GetWindowWidth() * 3.0f / 4.0f, this->GetWindowHeight() * 0.75f));
 
             auto body = node->CreateComponent<RigidBody2D>();
             body->SetBodyType(BT_DYNAMIC);

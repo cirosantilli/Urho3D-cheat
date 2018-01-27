@@ -33,7 +33,7 @@ public:
             auto wallWidth = this->GetWindowWidth() / 20.0f;
             {
                 bottomWallNode = this->scene->CreateChild("BottomWall");
-                bottomWallNode->SetPosition(Vector2(this->GetWindowWidth() / 2.0, wallWidth / 2.0f));
+                bottomWallNode->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0, wallWidth / 2.0f));
                 wallBody = bottomWallNode->CreateComponent<RigidBody2D>();
                 auto shape = bottomWallNode->CreateComponent<CollisionBox2D>();
                 shape->SetSize(Vector2(wallLength, wallWidth));
@@ -41,19 +41,19 @@ public:
             } {
                 auto node = bottomWallNode->Clone();
                 node->SetName("TopWall");
-                node->SetPosition(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() - (wallWidth / 2.0f)));
+                node->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() - (wallWidth / 2.0f)));
             } {
                 auto& node = this->rightWallNode;
                 node = bottomWallNode->Clone();
                 node->SetName("RightWall");
                 node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
-                node->SetPosition(Vector2(this->GetWindowWidth() - (wallWidth / 2.0f), this->GetWindowHeight() / 2.0f));
+                node->SetPosition2D(Vector2(this->GetWindowWidth() - (wallWidth / 2.0f), this->GetWindowHeight() / 2.0f));
             } {
                 auto& node = this->leftWallNode;
                 node = bottomWallNode->Clone();
                 node->SetName("LeftWall");
                 node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
-                node->SetPosition(Vector2(-wallWidth / 2.0f, this->GetWindowHeight() / 2.0f));
+                node->SetPosition2D(Vector2(-wallWidth / 2.0f, this->GetWindowHeight() / 2.0f));
             } {
                 auto& node = this->playerNode;
                 node = bottomWallNode->Clone();
@@ -61,7 +61,7 @@ public:
                 node->SetRotation(Quaternion(0.0f, 0.0f, 90.0f));
                 // TODO The more elegant value of x is wallWidth / 2.0. But then we get stuck
                 // to the left wall when the ball hits the player. Use collision filtering.
-                node->SetPosition(Vector2(wallWidth, this->GetWindowHeight() / 2.0f));
+                node->SetPosition2D(Vector2(wallWidth, this->GetWindowHeight() / 2.0f));
 
                 auto body = node->GetComponent<RigidBody2D>();
                 body->SetBodyType(BT_DYNAMIC);
@@ -72,7 +72,7 @@ public:
                 // See prismatic_collide_connected.cpp
                 auto bottomWallCloneNode = bottomWallNode->Clone();
                 bottomWallCloneNode->SetName("Player");
-                bottomWallCloneNode->SetPosition(Vector2(this->GetWindowHeight() / 2.0f, -this->GetWindowWidth()));
+                bottomWallCloneNode->SetPosition2D(Vector2(this->GetWindowHeight() / 2.0f, -this->GetWindowWidth()));
 
                 auto constraint = node->CreateComponent<ConstraintPrismatic2D>();
                 constraint->SetOtherBody(bottomWallCloneNode->GetComponent<RigidBody2D>());
@@ -109,7 +109,7 @@ public:
                 }
             } {
                 this->ballNode = this->scene->CreateChild("Ball");
-                this->ballNode->SetPosition(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                this->ballNode->SetPosition2D(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                 auto body = this->ballNode->CreateComponent<RigidBody2D>();
                 body->SetBodyType(BT_DYNAMIC);
                 body->SetLinearVelocity(Vector2(2 * this->GetWindowWidth(), -this->GetWindowHeight() / 2.0f));
