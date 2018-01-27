@@ -311,20 +311,46 @@ class MaxDistComponent : public LogicComponent {
 public:
     MaxDistComponent(Context* context) : LogicComponent(context) {}
     virtual void Start() {
+        this->bounces = 0;
         // Cannot use node_ yet on constructor. Must use it here instead.
         this->initialPosition = this->node_->GetPosition2D();
+        this->previousPosition = this->initialPosition;
+        this->maxBouncesGiven = false;
     }
     virtual void Update(float timeStep) {
         this->node_->Translate2D(this->speed * timeStep);
         if ((this->node_->GetPosition2D() - this->initialPosition).Length() > this->maxDist) {
             this->speed *= -1.0f;
+            this->bounces++;
+            if (
+                this->maxBouncesGiven &&
+                this->bounces == this->maxBounces
+            )
+                this->Remove();
+        } else if (
+            this->maxBouncesGiven &&
+            this->bounces == this->maxBounces &&
+            (
+                (this->initialPosition - this->node_->GetPosition2D()).DotProduct(
+                 this->initialPosition - this->previousPosition) < 0.0f
+            )
+        ) {
+            //this->Remove();
+            std::cout << "asdf" << std::endl;
         }
+        this->previousPosition = this->node_->GetPosition2D();
     }
     void SetSpeed(Vector2 speed) { this->speed = speed; }
     void SetMaxDist(float maxDist) { this->maxDist = maxDist; }
+    void SetMaxBounces(unsigned int maxBounces) {
+        this->maxBounces = maxBounces;
+        this->maxBouncesGiven = true;
+    }
 private:
-    Vector2 initialPosition, speed;
+    Vector2 initialPosition, previousPosition, speed;
     float maxDist;
+    unsigned int bounces, maxBounces;
+    bool maxBouncesGiven;
 };
 
 #endif
