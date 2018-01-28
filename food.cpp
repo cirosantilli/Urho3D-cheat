@@ -233,6 +233,17 @@ public:
                     }
                     this->CreateRandomAppleNode();
                 }},
+                {Main::sceneNameToIdx.at("rock"), [&](){
+                    // TODO: if you use the rock to push the apple into a corner, the rock and apple can overlap.
+                    // And worse, for some reason this can lead to multiple apples spawning afterwards.
+                    // This does not happen however on the Box2D sandbox, so it should be solvable somehow:
+                    // https://github.com/cirosantilli/Box2D/tree/EdgeTest-overlap
+                    this->SetTitle("Rocks aren't good.");
+                    this->CreateWallNodes();
+                    this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    this->CreateRockNode(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    this->CreateRandomAppleNode();
+                }},
             }[this->sceneIdx]();
         }
     }
@@ -335,6 +346,7 @@ private:
                     "apple-button",
                     "apple-buttons-and",
                     "button-door",
+                    "rock",
                 };
                 decltype(scenes)::size_type i = 0;
                 for (const auto& scene : scenes) {
@@ -399,13 +411,15 @@ private:
         auto body = node->CreateComponent<RigidBody2D>();
         body->SetBodyType(BT_DYNAMIC);
         body->SetBullet(true);
+        body->SetLinearDamping(4.0);
+        body->SetAngularDamping(4.0);
         auto shape = node->CreateComponent<CollisionCircle2D>();
         // For 0.0 the player is still pushed back when eating.
         // SetTrigger sets the sensor property, but Urho then ignores it on the AABB query.
         shape->SetDensity(1e-06f);
         shape->SetFriction(0.0f);
         shape->SetRadius(Main::playerRadius);
-        shape->SetRestitution(this->playerRestitution);
+        shape->SetRestitution(Main::playerRestitution);
         // TODO use triggers instead of aabb to be more precise.
         // But is it possible without stepping the simulation?
         auto b2Aabb = shape->GetFixture()->GetAABB(0);
@@ -426,6 +440,26 @@ private:
         }
         Main::SetSprite(node, shape, this->resourceCache->GetResource<Sprite2D>("./shiny-apple.png"));
         return true;
+    }
+
+    void CreateRockNode(
+        const Vector2& position,
+        float rotation = 0.0f
+    ) {
+        auto node = this->scene->CreateChild("Rock");
+        node->SetPosition2D(position);
+        node->SetRotation(Quaternion(rotation));
+        auto body = node->CreateComponent<RigidBody2D>();
+        body->SetBodyType(BT_DYNAMIC);
+        body->SetBullet(true);
+        body->SetLinearDamping(4.0);
+        body->SetAngularDamping(4.0);
+        auto shape = node->CreateComponent<CollisionCircle2D>();
+        shape->SetDensity(Main::playerDensity);
+        shape->SetFriction(0.0f);
+        shape->SetRadius(Main::playerRadius);
+        shape->SetRestitution(Main::playerRestitution);
+        Main::SetSprite(node, shape, this->resourceCache->GetResource<Sprite2D>("./rock.png"));
     }
 
     bool CreatePlayerNode(const Vector2& position, float rotation = 0.0f) {
