@@ -52,7 +52,7 @@ public:
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     unsigned int napples = this->GetWindowWidth() * this->GetWindowHeight() / (100.0f * Main::playerRadius * Main::playerRadius);
                     for (auto i = 0u; i < napples; ++i)
-                        this->CreateRandomAppleNode();
+                        CreateRandomAppleNode();
                 }},
                 {Main::sceneNameToIdx.at("hole-top-bottom"), [&](){
                     this->SetTitle("I don't see no apple");
@@ -388,6 +388,24 @@ private:
     size_t sceneIdx;
     std::map<Node*,std::map<Node*,std::vector<ContactData>>> contactDataMap;
 
+    size_t AabbCount(CollisionShape2D *shape) {
+        // TODO use triggers instead of aabb to be more precise.
+        // But is it possible without stepping the simulation?
+        auto b2Aabb = shape->GetFixture()->GetAABB(0);
+        auto lowerBound = Vector2(b2Aabb.lowerBound.x, b2Aabb.lowerBound.y);
+        auto upperBound = Vector2(b2Aabb.upperBound.x, b2Aabb.upperBound.y);
+        PODVector<RigidBody2D*> rigidBodies;
+        auto aabb = Rect(lowerBound, upperBound);
+        this->physicsWorld->GetRigidBodies(rigidBodies, aabb);
+        if (false) {
+            for (const auto& body : rigidBodies) {
+                std::cout << body->GetNode()->GetName().CString() << std::endl;
+            }
+            std::cout << std::endl;
+        }
+        return rigidBodies.Size();
+    }
+
     bool CreateAppleNode(
         const Vector2& position,
         float rotation = 0.0f,
@@ -406,38 +424,20 @@ private:
         node = this->scene->CreateChild("Apple");
         node->SetPosition2D(position);
         node->SetRotation(Quaternion(rotation));
+        auto body = node->CreateComponent<RigidBody2D>();
+        auto shape = node->CreateComponent<CollisionCircle2D>();
+        shape->SetRadius(Main::playerRadius);
         node->SetVar(IS_FOOD, true);
         node->SetVar(RESPAWN, respawn);
-        auto body = node->CreateComponent<RigidBody2D>();
-        body->SetBodyType(BT_DYNAMIC);
         body->SetBullet(true);
+        body->SetBodyType(BT_DYNAMIC);
         body->SetLinearDamping(4.0);
         body->SetAngularDamping(4.0);
-        auto shape = node->CreateComponent<CollisionCircle2D>();
         // For 0.0 the player is still pushed back when eating.
         // SetTrigger sets the sensor property, but Urho then ignores it on the AABB query.
         shape->SetDensity(1e-06f);
         shape->SetFriction(0.0f);
-        shape->SetRadius(Main::playerRadius);
         shape->SetRestitution(Main::playerRestitution);
-        // TODO use triggers instead of aabb to be more precise.
-        // But is it possible without stepping the simulation?
-        auto b2Aabb = shape->GetFixture()->GetAABB(0);
-        auto lowerBound = Vector2(b2Aabb.lowerBound.x, b2Aabb.lowerBound.y);
-        auto upperBound = Vector2(b2Aabb.upperBound.x, b2Aabb.upperBound.y);
-        PODVector<RigidBody2D*> rigidBodies;
-        auto aabb = Rect(lowerBound, upperBound);
-        this->physicsWorld->GetRigidBodies(rigidBodies, aabb);
-        if (false) {
-            for (const auto& body : rigidBodies) {
-                std::cout << body->GetNode()->GetName().CString() << std::endl;
-            }
-            std::cout << std::endl;
-        }
-        if (rigidBodies.Size() > 1) {
-            node->Remove();
-            return false;
-        }
         Main::SetSprite(node, shape, this->resourceCache->GetResource<Sprite2D>("./shiny-apple.png"));
         return true;
     }
@@ -487,12 +487,9 @@ private:
     }
 
     void CreateRandomAppleNode(Node *&node, bool respawn = true) {
-        while (!this->CreateAppleNode(
-            node,
-            Vector2(Random(), Random()) * this->GetWindowWidth(),
-            Random() * 360.0f,
-            respawn
-        ));
+        Node *apple;
+        this->CreateAppleNode(apple, Vector2::ZERO, 0.0f);
+        this->MoveToRandomEmptySpace(apple, apple->GetComponent<CollisionCircle2D>());
     }
 
     void CreateWallNodes() {
@@ -707,6 +704,13 @@ private:
         shape->SetRadius(Main::playerRadius);
         shape->SetRestitution(Main::playerRestitution);
         Main::SetSprite(node, shape, this->resourceCache->GetResource<Sprite2D>("./button-finger.png"));
+    }
+
+    void MoveToRandomEmptySpace(Node *node, CollisionShape2D *shape) {
+        while (this->AabbCount(shape) > 1) {
+            node->SetPosition(Vector2(Random() * this->GetWindowWidth(), Random() * this->GetWindowHeight()));
+            node->SetRotation(Quaternion(Random() * 360.0f));
+        }
     }
 
     void SetScore(float score) {
