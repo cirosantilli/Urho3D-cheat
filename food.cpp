@@ -221,8 +221,11 @@ public:
                     {
                         auto button = this->scene->CreateChild("Button0");
                         this->InitButtonNode(button);
-                        button->SetPosition(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 4.0f));
                         auto activateDoorButtonComponent = button->CreateComponent<ActivateDoorButtonComponent>();
+                        this->MoveToRandomEmptySpace(
+                            button, button->GetComponent<CollisionCircle2D>(),
+                            Rect(0.0f, this->GetWindowHeight(), this->GetWindowWidth() / 2.0f, 0.0f)
+                        );
                         activateDoorButtonComponent->Init(maxDistComponent);
                     }
                     {
@@ -230,6 +233,10 @@ public:
                         this->InitButtonNode(button);
                         button->SetPosition(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 4.0f));
                         auto activateDoorButtonComponent = button->CreateComponent<ActivateDoorButtonComponent>();
+                        this->MoveToRandomEmptySpace(
+                            button, button->GetComponent<CollisionCircle2D>(),
+                            Rect(this->GetWindowWidth() / 2.0f, this->GetWindowHeight(), this->GetWindowWidth(), 0.0f)
+                        );
                         activateDoorButtonComponent->Init(maxDistComponent);
                     }
                     this->CreateRandomAppleNode();
@@ -722,8 +729,16 @@ private:
     }
 
     void MoveToRandomEmptySpace(Node *node, CollisionShape2D *shape) {
+        Rect bounds(0.0f, this->GetWindowHeight(), this->GetWindowWidth(), 0.0f);
+        this->MoveToRandomEmptySpace(node, shape, bounds);
+    }
+
+    void MoveToRandomEmptySpace(Node *node, CollisionShape2D *shape, const Rect& bounds) {
         do {
-            node->SetPosition(Vector2(Random() * this->GetWindowWidth(), Random() * this->GetWindowHeight()));
+            node->SetPosition(Vector2(
+                bounds.Left()   + (Random() * (bounds.Right() - bounds.Left())),
+                bounds.Bottom() + (Random() * (bounds.Top()   - bounds.Bottom()))
+            ));
             node->SetRotation(Quaternion(Random() * 360.0f));
         } while (this->AabbCount(shape) > 1);
     }
