@@ -215,6 +215,7 @@ public:
                         maxDistComponent->SetSpeed(Vector2::RIGHT * this->GetWindowWidth() / 4.0f);
                         maxDistComponent->SetMaxDist((this->GetWindowWidth() - bottomSeparatorLength) / 2.0f);
                         maxDistComponent->SetMaxBounces(1);
+                        maxDistComponent->SetActive(false);
                         auto body = node->GetComponent<RigidBody2D>();
                         body->SetBodyType(BT_KINEMATIC);
                     }

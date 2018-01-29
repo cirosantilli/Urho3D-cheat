@@ -340,6 +340,7 @@ public:
         this->bounces = 0;
         this->active = true;
     }
+    void SetActive(bool active) { this->active = active; }
     void SetSpeed(Vector2 speed) { this->speed = speed; }
     void SetMaxDist(float maxDist) { this->maxDist = maxDist; }
     void SetMaxBounces(unsigned int maxBounces) {
