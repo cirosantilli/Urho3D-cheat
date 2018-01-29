@@ -6,7 +6,6 @@ One agent eats apples and gets happy.
 
 using namespace Urho3D;
 
-static const StringHash IS_FOOD("IsFood");
 static const StringHash RESPAWN("Respawn");
 
 class Main : public Common {
@@ -247,11 +246,32 @@ public:
                     // And worse, for some reason this can lead to multiple apples spawning afterwards.
                     // This does not happen however on the Box2D sandbox, so it should be solvable somehow:
                     // https://github.com/cirosantilli/Box2D/tree/EdgeTest-overlap
+                    // This can be easily reproducible with mouse drag.
                     this->SetTitle("Rocks aren't good.");
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     this->CreateRandomAppleNode();
                     this->CreateRandomRockNode();
+                }},
+                {Main::sceneNameToIdx.at("spikes"), [&](){
+                    this->SetTitle("And spikes are just plain bad.");
+                    this->CreateWallNodes();
+                    this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    this->CreateRandomAppleNode();
+                    auto node = this->scene->CreateChild("Rock");
+                    node->SetVar("TouchScoreChange", -1.0f);
+                    auto body = node->CreateComponent<RigidBody2D>();
+                    body->SetBodyType(BT_STATIC);
+                    body->SetBullet(true);
+                    body->SetLinearDamping(4.0);
+                    body->SetAngularDamping(4.0);
+                    auto shape = node->CreateComponent<CollisionCircle2D>();
+                    shape->SetRadius(Main::playerRadius);
+                    shape->SetDensity(Main::playerDensity);
+                    shape->SetFriction(0.0f);
+                    shape->SetRestitution(Main::playerRestitution);
+                    this->MoveToRandomEmptySpace(node, shape);
+                    Main::SetSprite(node, shape, this->resourceCache->GetResource<Sprite2D>("./spikes-full.png"));
                 }},
             }[this->sceneIdx]();
         }
@@ -314,7 +334,7 @@ private:
         bool active;
         void HandleAppleEaten(StringHash eventType, VariantMap& eventData) {
             auto appleNode = (static_cast<Node*>(this->GetEventSender()));
-            this->UnsubscribeFromEvent(appleNode, "Eaten");
+            this->UnsubscribeFromEvent(appleNode, "Consumed");
             this->nButtonsHit = 0;
             this->active = true;
             for (auto &entry : this->buttonsHit) {
@@ -331,7 +351,7 @@ private:
             if (this->active && this->nButtonsHit == this->buttonsHit.size()) {
                 Node *apple;
                 this->main->CreateRandomAppleNode(apple, false);
-                this->SubscribeToEvent(apple, "Eaten", URHO3D_HANDLER(AppleButtonsAndComponent, HandleAppleEaten));
+                this->SubscribeToEvent(apple, "Consumed", URHO3D_HANDLER(AppleButtonsAndComponent, HandleAppleEaten));
                 this->active = false;
             }
         }
@@ -356,6 +376,7 @@ private:
                     "apple-buttons-and",
                     "button-door",
                     "rock",
+                    "spikes",
                 };
                 decltype(scenes)::size_type i = 0;
                 for (const auto& scene : scenes) {
@@ -417,7 +438,8 @@ private:
 
     void CreateAppleNode(Node *&node, bool respawn = true) {
         node = this->scene->CreateChild("Apple");
-        node->SetVar(IS_FOOD, true);
+        node->SetVar("IsConsumable", true);
+        node->SetVar("TouchScoreChange", 1.0f);
         node->SetVar(RESPAWN, respawn);
         auto body = node->CreateComponent<RigidBody2D>();
         body->SetBullet(true);
@@ -569,14 +591,24 @@ private:
             otherNode = nodea;
             player = true;
         }
-        if (player && otherNode->GetVar(IS_FOOD).GetBool()) {
-            this->SetScore(this->score + 1.0f);
-            VariantMap eventData;
-            eventData["SENDER"] = this;
-            otherNode->SendEvent("Eaten", eventData);
-            otherNode->Remove();
-            if (otherNode->GetVar(RESPAWN).GetBool()) {
-                this->CreateRandomAppleNode();
+        if (player) {
+            {
+                auto variant = otherNode->GetVar("TouchScoreChange");
+                if (variant != Variant::EMPTY) {
+                    this->SetScore(this->score + variant.GetFloat());
+                }
+            }
+            {
+                auto variant = otherNode->GetVar("IsConsumable");
+                if (variant != Variant::EMPTY && variant.GetBool()) {
+                    VariantMap eventData;
+                    eventData["SENDER"] = this;
+                    otherNode->SendEvent("Consumed", eventData);
+                    otherNode->Remove();
+                    if (otherNode->GetVar(RESPAWN).GetBool()) {
+                        this->CreateRandomAppleNode();
+                    }
+                }
             }
         }
     }
