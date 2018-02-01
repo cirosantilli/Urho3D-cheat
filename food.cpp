@@ -45,13 +45,24 @@ public:
                         "ESC: quit\n"
                     );
                 }},
-                {Main::sceneNameToIdx.at("apples"), [&](){
+                {Main::sceneNameToIdx.at("apple"), [&](){
                     this->SetTitle("Apples are good");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode();
-                    unsigned int napples = this->GetWindowWidth() * this->GetWindowHeight() / (100.0f * Main::playerRadius * Main::playerRadius);
-                    for (auto i = 0u; i < napples; ++i)
-                        CreateRandomAppleNode();
+                    this->CreateRandomAppleNode();
+                }},
+                {Main::sceneNameToIdx.at("golden-apple"), [&](){
+                    this->SetTitle("Golden apples are better");
+                    this->CreateWallNodes();
+                    this->CreateRandomPlayerNode();
+                    this->CreateRandomGoldenAppleNode();
+                }},
+                {Main::sceneNameToIdx.at("rotten-apple"), [&](){
+                    this->SetTitle("Rotten apples are bad");
+                    this->CreateWallNodes();
+                    this->CreateRandomPlayerNode();
+                    this->CreateRandomAppleNode();
+                    this->CreateRandomRottenAppleNode();
                 }},
                 {Main::sceneNameToIdx.at("hole-top-bottom"), [&](){
                     this->SetTitle("I don't see no apple");
@@ -154,11 +165,11 @@ public:
                     appleButtonsAndComponent->Init(this);
                     auto button = buttonsNode->CreateChild("button");
                     this->InitButtonNode(button);
-                    this->MoveToRandomEmptySpace(button, button->GetComponent<CollisionCircle2D>());
+                    this->MoveToRandomEmptySpace(button);
                     appleButtonsAndComponent->AddChildButton(button);
                 }},
                 {Main::sceneNameToIdx.at("apple-buttons-and"), [&](){
-                    this->SetTitle("And now there are two");
+                    this->SetTitle("AND now there are two");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode();
                     auto buttonsNode = this->scene->CreateChild("Buttons");
@@ -167,15 +178,15 @@ public:
                     {
                         auto button = this->scene->CreateChild("Button0");
                         this->InitButtonNode(button);
-                        this->MoveToRandomEmptySpace(button, button->GetComponent<CollisionCircle2D>());
+                        this->MoveToRandomEmptySpace(button);
                         appleButtonsAndComponent->AddChildButton(button);
                     }
                     {
                         auto button = this->scene->CreateChild("Button1");
                         this->InitButtonNode(button);
-                        this->MoveToRandomEmptySpace(button, button->GetComponent<CollisionCircle2D>());
+                        this->MoveToRandomEmptySpace(button);
                         appleButtonsAndComponent->AddChildButton(button);
-                        this->MoveToRandomEmptySpace(button, button->GetComponent<CollisionCircle2D>());
+                        this->MoveToRandomEmptySpace(button);
                     }
                 }},
                 {Main::sceneNameToIdx.at("button-door"), [&](){
@@ -223,7 +234,7 @@ public:
                         this->InitButtonNode(button);
                         auto activateDoorButtonComponent = button->CreateComponent<ActivateDoorButtonComponent>();
                         this->MoveToRandomEmptySpace(
-                            button, button->GetComponent<CollisionCircle2D>(),
+                            button,
                             Rect(0.0f, this->GetWindowHeight(), this->GetWindowWidth() / 2.0f, 0.0f)
                         );
                         activateDoorButtonComponent->Init(maxDistComponent);
@@ -234,7 +245,7 @@ public:
                         button->SetPosition(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 4.0f));
                         auto activateDoorButtonComponent = button->CreateComponent<ActivateDoorButtonComponent>();
                         this->MoveToRandomEmptySpace(
-                            button, button->GetComponent<CollisionCircle2D>(),
+                            button,
                             Rect(this->GetWindowWidth() / 2.0f, this->GetWindowHeight(), this->GetWindowWidth(), 0.0f)
                         );
                         activateDoorButtonComponent->Init(maxDistComponent);
@@ -270,7 +281,7 @@ public:
                     shape->SetDensity(Main::playerDensity);
                     shape->SetFriction(0.0f);
                     shape->SetRestitution(Main::playerRestitution);
-                    this->MoveToRandomEmptySpace(node, shape);
+                    this->MoveToRandomEmptySpace(node);
                     Main::SetSprite(node, shape, this->resourceCache->GetResource<Sprite2D>("./spikes-full.png"));
                 }},
             }[this->sceneIdx]();
@@ -367,7 +378,9 @@ private:
             _StaticConstructor() {
                 static std::vector<String> scenes = {
                     "tutorial",
-                    "apples",
+                    "apple",
+                    "golden-apple",
+                    "rotten-apple",
                     "hole-top-bottom",
                     "hole-top",
                     "small-hole",
@@ -436,10 +449,9 @@ private:
         return rigidBodies.Size();
     }
 
-    void CreateAppleNode(Node *&node, bool respawn = true) {
+    void CreateAppleNodeBase(Node *&node, bool respawn = true) {
         node = this->scene->CreateChild("Apple");
         node->SetVar("IsConsumable", true);
-        node->SetVar("TouchScoreChange", 1.0f);
         node->SetVar(RESPAWN, respawn);
         auto body = node->CreateComponent<RigidBody2D>();
         body->SetBullet(true);
@@ -453,7 +465,24 @@ private:
         shape->SetDensity(1e-06f);
         shape->SetFriction(0.0f);
         shape->SetRestitution(Main::playerRestitution);
-        Main::SetSprite(node, shape, this->resourceCache->GetResource<Sprite2D>("./shiny-apple.png"));
+    }
+
+    void CreateAppleNode(Node *&node, bool respawn = true) {
+        this->CreateAppleNodeBase(node, respawn);
+        node->SetVar("TouchScoreChange", 1.0f);
+        Main::SetSprite(node, node->GetComponent<CollisionCircle2D>(), this->resourceCache->GetResource<Sprite2D>("./shiny-apple-red.png"));
+    }
+
+    void CreateGoldenAppleNode(Node *&node, bool respawn = true) {
+        this->CreateAppleNodeBase(node, respawn);
+        node->SetVar("TouchScoreChange", 5.0f);
+        Main::SetSprite(node, node->GetComponent<CollisionCircle2D>(), this->resourceCache->GetResource<Sprite2D>("./shiny-apple-yellow.png"));
+    }
+
+    void CreateRottenAppleNode(Node *&node, bool respawn = true) {
+        this->CreateAppleNodeBase(node, respawn);
+        node->SetVar("TouchScoreChange", -1.0f);
+        Main::SetSprite(node, node->GetComponent<CollisionCircle2D>(), this->resourceCache->GetResource<Sprite2D>("./shiny-apple-brown.png"));
     }
 
     void CreateAppleNode(
@@ -508,18 +537,30 @@ private:
 
     void CreateRandomAppleNode(Node *&node, bool respawn = true) {
         this->CreateAppleNode(node, respawn);
-        this->MoveToRandomEmptySpace(node, node->GetComponent<CollisionCircle2D>());
+        this->MoveToRandomEmptySpace(node);
+    }
+
+    void CreateRandomGoldenAppleNode() {
+        Node *node;
+        this->CreateGoldenAppleNode(node);
+        this->MoveToRandomEmptySpace(node);
+    }
+
+    void CreateRandomRottenAppleNode() {
+        Node *node;
+        this->CreateRottenAppleNode(node);
+        this->MoveToRandomEmptySpace(node);
     }
 
     void CreateRandomRockNode() {
         Node *node;
         this->CreateRockNode(node);
-        this->MoveToRandomEmptySpace(node, node->GetComponent<CollisionCircle2D>());
+        this->MoveToRandomEmptySpace(node);
     }
 
     void CreateRandomPlayerNode() {
         this->CreatePlayerNode();
-        this->MoveToRandomEmptySpace(this->playerNode, this->playerNode->GetComponent<CollisionCircle2D>());
+        this->MoveToRandomEmptySpace(this->playerNode);
     }
 
     void CreateRockNode(Node *&node) {
@@ -604,9 +645,13 @@ private:
                     VariantMap eventData;
                     eventData["SENDER"] = this;
                     otherNode->SendEvent("Consumed", eventData);
-                    otherNode->Remove();
                     if (otherNode->GetVar(RESPAWN).GetBool()) {
-                        this->CreateRandomAppleNode();
+                        this->MoveToRandomEmptySpace(otherNode);
+                        auto body = otherNode->GetComponent<RigidBody2D>();
+                        body->SetLinearVelocity(Vector2::ZERO);
+                        body->SetAngularVelocity(0.0f);
+                    } else {
+                        otherNode->Remove();
                     }
                 }
             }
@@ -761,19 +806,19 @@ private:
         Main::SetSprite(node, shape, this->resourceCache->GetResource<Sprite2D>("./button-finger.png"));
     }
 
-    void MoveToRandomEmptySpace(Node *node, CollisionShape2D *shape) {
+    void MoveToRandomEmptySpace(Node *node) {
         Rect bounds(0.0f, this->GetWindowHeight(), this->GetWindowWidth(), 0.0f);
-        this->MoveToRandomEmptySpace(node, shape, bounds);
+        this->MoveToRandomEmptySpace(node, bounds);
     }
 
-    void MoveToRandomEmptySpace(Node *node, CollisionShape2D *shape, const Rect& bounds) {
+    void MoveToRandomEmptySpace(Node *node, const Rect& bounds) {
         do {
             node->SetPosition(Vector2(
                 bounds.Left()   + (Random() * (bounds.Right() - bounds.Left())),
                 bounds.Bottom() + (Random() * (bounds.Top()   - bounds.Bottom()))
             ));
             node->SetRotation(Quaternion(Random() * 360.0f));
-        } while (this->AabbCount(shape) > 1);
+        } while (this->AabbCount(node->GetDerivedComponent<CollisionShape2D>()) > 1);
     }
 
     void SetScore(float score) {
