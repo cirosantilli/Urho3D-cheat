@@ -488,11 +488,11 @@ private:
         // TODO: make player not loose speed when hitting the apple.
         // The player is still pushed back when eating. Why.
         //shape->SetDensity(0.0f);
-        // SetTrigger sets the sensor property, but Urho then ignores it on the AABB query.
-        //shape->SetTrigger(true);
         // Works, until we reach cases where some things can apply forces to apples,
         // and then this would be just too light, the apple would fly away.
         //shape->SetDensity(1e-06f);
+        // Prevents other things besides player, e.g. a rock, from interacting with the apple.
+        //shape->SetTrigger(true);
         shape->SetDensity(Main::playerDensity);
         shape->SetFriction(0.0f);
         shape->SetRestitution(Main::playerRestitution);
