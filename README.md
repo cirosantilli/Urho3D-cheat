@@ -27,5 +27,6 @@ Build and run a demo:
     1.  [compound3d.cpp](compound3d.cpp)
 1.  [TODO](TODO.md)
     1.  [prismatic_collide_connected.cpp](prismatic_collide_connected.cpp)
+    1.  [sprite_repeat](sprite_repeat.cpp)
 
 Icons by <https://github.com/game-icons/icons>
