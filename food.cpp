@@ -269,20 +269,44 @@ public:
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     this->CreateRandomAppleNode();
-                    auto node = this->scene->CreateChild("Rock");
+                    auto node = this->scene->CreateChild("Spikes");
                     node->SetVar("TouchScoreChange", -1.0f);
                     auto body = node->CreateComponent<RigidBody2D>();
                     body->SetBodyType(BT_STATIC);
-                    body->SetBullet(true);
-                    body->SetLinearDamping(4.0);
-                    body->SetAngularDamping(4.0);
                     auto shape = node->CreateComponent<CollisionCircle2D>();
                     shape->SetRadius(Main::playerRadius);
-                    shape->SetDensity(Main::playerDensity);
                     shape->SetFriction(0.0f);
                     shape->SetRestitution(Main::playerRestitution);
                     this->MoveToRandomEmptySpace(node);
-                    Main::SetSprite(node, shape, this->resourceCache->GetResource<Sprite2D>("./spikes-full.png"));
+                    Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./spikes-full.png"));
+                }},
+                {Main::sceneNameToIdx.at("bouncer"), [&](){
+                    this->SetTitle("Bouncer");
+                    this->CreateWallNodes();
+
+                    auto node = this->scene->CreateChild("bouncer");
+                    auto body = node->CreateComponent<RigidBody2D>();
+                    body->SetBodyType(BT_STATIC);
+                    auto shape = node->CreateComponent<CollisionBox2D>();
+                    shape->SetSize(2.0f * Main::playerRadius * Vector2::ONE);
+                    shape->SetFriction(0.0f);
+                    shape->SetRestitution(Main::playerRestitution);
+                    Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./move.png"));
+                    this->MoveToRandomEmptySpace(node);
+
+                    node->SubscribeToEvent(node, E_NODEBEGINCONTACT2D, [](StringHash eventType, VariantMap& eventData) {
+                        using namespace NodeBeginContact2D;
+                        auto otherBody = static_cast<RigidBody2D*>(eventData[P_OTHERBODY].GetPtr());
+                        MemoryBuffer contacts(eventData[P_CONTACTS].GetBuffer());
+                        /*auto position = */contacts.ReadVector2();
+                        auto normal = contacts.ReadVector2();
+                        otherBody->ApplyLinearImpulseToCenter(100.0f * normal, true);
+                    });
+
+                    //this->playerNode->GetComponent<RigidBody2D>()->ApplyForceToCenter(100.0f * Vector2::DOWN, true);
+                    this->CreateRandomPlayerNode();
+                    this->CreateRandomAppleNode();
+                    this->CreateRandomRockNode();
                 }},
             }[this->sceneIdx]();
         }
@@ -390,6 +414,7 @@ private:
                     "button-door",
                     "rock",
                     "spikes",
+                    "bouncer",
                 };
                 decltype(scenes)::size_type i = 0;
                 for (const auto& scene : scenes) {
@@ -411,9 +436,9 @@ private:
         vec = Vector2(vec3.x_, vec3.y_);
     }
 
-    static void SetSprite(Node *node, CollisionShape2D *shape, Sprite2D *sprite) {
+    static void SetSprite(Node *node, Sprite2D *sprite) {
         auto position = node->GetPosition2D();
-        auto b2Aabb = shape->GetFixture()->GetAABB(0);
+        auto b2Aabb = node->GetDerivedComponent<CollisionShape2D>()->GetFixture()->GetAABB(0);
         auto lowerBound = Vector2(b2Aabb.lowerBound.x, b2Aabb.lowerBound.y);
         auto upperBound = Vector2(b2Aabb.upperBound.x, b2Aabb.upperBound.y);
         PODVector<RigidBody2D*> rigidBodies;
@@ -460,9 +485,15 @@ private:
         body->SetAngularDamping(4.0);
         auto shape = node->CreateComponent<CollisionCircle2D>();
         shape->SetRadius(Main::playerRadius);
-        // For 0.0 the player is still pushed back when eating.
+        // TODO: make player not loose speed when hitting the apple.
+        // The player is still pushed back when eating. Why.
+        //shape->SetDensity(0.0f);
         // SetTrigger sets the sensor property, but Urho then ignores it on the AABB query.
-        shape->SetDensity(1e-06f);
+        //shape->SetTrigger(true);
+        // Works, until we reach cases where some things can apply forces to apples,
+        // and then this would be just too light, the apple would fly away.
+        //shape->SetDensity(1e-06f);
+        shape->SetDensity(Main::playerDensity);
         shape->SetFriction(0.0f);
         shape->SetRestitution(Main::playerRestitution);
     }
@@ -470,19 +501,19 @@ private:
     void CreateAppleNode(Node *&node, bool respawn = true) {
         this->CreateAppleNodeBase(node, respawn);
         node->SetVar("TouchScoreChange", 1.0f);
-        Main::SetSprite(node, node->GetComponent<CollisionCircle2D>(), this->resourceCache->GetResource<Sprite2D>("./shiny-apple-red.png"));
+        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./shiny-apple-red.png"));
     }
 
     void CreateGoldenAppleNode(Node *&node, bool respawn = true) {
         this->CreateAppleNodeBase(node, respawn);
         node->SetVar("TouchScoreChange", 5.0f);
-        Main::SetSprite(node, node->GetComponent<CollisionCircle2D>(), this->resourceCache->GetResource<Sprite2D>("./shiny-apple-yellow.png"));
+        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./shiny-apple-yellow.png"));
     }
 
     void CreateRottenAppleNode(Node *&node, bool respawn = true) {
         this->CreateAppleNodeBase(node, respawn);
         node->SetVar("TouchScoreChange", -1.0f);
-        Main::SetSprite(node, node->GetComponent<CollisionCircle2D>(), this->resourceCache->GetResource<Sprite2D>("./shiny-apple-brown.png"));
+        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./shiny-apple-brown.png"));
     }
 
     void CreateAppleNode(
@@ -520,7 +551,7 @@ private:
         shape->SetRadius(Main::playerRadius);
         shape->SetRestitution(Main::playerRestitution);
         this->CreateCamera(node, 20.0f * playerRadius);
-        Main::SetSprite(node, shape, this->resourceCache->GetResource<Sprite2D>("./baby-face.png"));
+        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./baby-face.png"));
     }
 
     void CreatePlayerNode(const Vector2& position, float rotation = 0.0f) {
@@ -575,7 +606,7 @@ private:
         shape->SetFriction(0.0f);
         shape->SetRadius(Main::playerRadius);
         shape->SetRestitution(Main::playerRestitution);
-        Main::SetSprite(node, shape, this->resourceCache->GetResource<Sprite2D>("./rock.png"));
+        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./rock.png"));
     }
 
     void CreateWallNodes() {
@@ -803,7 +834,7 @@ private:
         shape->SetFriction(0.0f);
         shape->SetRadius(Main::playerRadius);
         shape->SetRestitution(Main::playerRestitution);
-        Main::SetSprite(node, shape, this->resourceCache->GetResource<Sprite2D>("./button-finger.png"));
+        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./button-finger.png"));
     }
 
     void MoveToRandomEmptySpace(Node *node) {
