@@ -8,7 +8,7 @@ Run another demo:
 Modify an existing demo:
 
     vim biped.cpp
-    cd bin
+    cd build
     make
     ./bin/biped
 
