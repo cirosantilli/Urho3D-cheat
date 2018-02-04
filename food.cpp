@@ -14,6 +14,7 @@ public:
         this->sceneIdx = 0;
         context->RegisterFactory<ActivateDoorButtonComponent>();
         context->RegisterFactory<AppleButtonsAndComponent>();
+        context->RegisterFactory<HumanActorComponent>();
         context->RegisterFactory<MaxDistComponent>();
         context->RegisterFactory<PlayerComponent>();
     }
@@ -32,7 +33,7 @@ public:
                 {Main::sceneNameToIdx.at("tutorial"), [&](){
                     this->SetTitle("Tutorial");
                     this->CreateWallNodes();
-                    this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    this->CreateRandomPlayerNode();
                     auto text = this->ui->GetRoot()->CreateChild<Text>();
                     text->SetFont(this->font, 20);
                     text->SetAlignment(HA_CENTER, VA_CENTER);
@@ -261,14 +262,14 @@ public:
                     // This can be easily reproducible with mouse drag.
                     this->SetTitle("Rocks aren't good.");
                     this->CreateWallNodes();
-                    this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    this->CreateRandomPlayerNode();
                     this->CreateRandomAppleNode();
                     this->CreateRandomRockNode();
                 }},
                 {Main::sceneNameToIdx.at("spikes"), [&](){
                     this->SetTitle("And spikes are just plain bad.");
                     this->CreateWallNodes();
-                    this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
+                    this->CreateRandomPlayerNode();
                     this->CreateRandomAppleNode();
                     auto node = this->scene->CreateChild("Spikes");
                     node->SetVar("TouchScoreChange", -1.0f);
@@ -344,8 +345,17 @@ public:
                     this->SetTitle("We are not alone");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode();
+                    this->playerNode->GetComponent<HumanActorComponent>()->Init2();
                     this->CreateRandomPlayerNode();
                     this->CreateRandomAppleNode();
+                    auto text = this->ui->GetRoot()->CreateChild<Text>();
+                    text->SetFont(this->font, 20);
+                    text->SetAlignment(HA_CENTER, VA_CENTER);
+                    text->SetText(
+                        "I: forward\n"
+                        "U: turn left\n"
+                        "O: turn right\n"
+                    );
                 }},
             }[this->sceneIdx]();
         }
@@ -427,6 +437,72 @@ private:
                 this->main->CreateRandomAppleNode(apple, false);
                 this->SubscribeToEvent(apple, "Consumed", URHO3D_HANDLER(AppleButtonsAndComponent, HandleAppleEaten));
                 this->active = false;
+            }
+        }
+    };
+
+    class HumanActorComponent : public Component {
+        URHO3D_OBJECT(HumanActorComponent, Component);
+    public:
+        HumanActorComponent(Context* context) : Component(context) {
+            this->SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(HumanActorComponent, HandleUpdate));
+        }
+        void Init() {
+            this->forward = KEY_W;
+            this->back = KEY_S;
+            this->left = KEY_A;
+            this->right = KEY_D;
+            this->turnLeft = KEY_Q;
+            this->turnRight = KEY_E;
+        }
+        void Init2() {
+            this->forward = KEY_I;
+            this->back = KEY_K;
+            this->left = KEY_J;
+            this->right = KEY_L;
+            this->turnLeft = KEY_U;
+            this->turnRight = KEY_O;
+        }
+    private:
+        int forward, back, left, right, turnLeft, turnRight;
+        void HandleUpdate(StringHash eventType, VariantMap& eventData) {
+            auto playerBody = this->node_->GetComponent<RigidBody2D>();
+            auto playerMass = Main::playerDensity * Main::playerRadius;
+            auto input = this->GetSubsystem<Input>();
+            auto playerForwardDirection = Vector2::UP;
+            Main::Rotate2D(playerForwardDirection, this->node_->GetRotation2D());
+
+            // Linear movement
+            {
+                auto forceMagnitude = 500.0f * playerMass;
+                if (input->GetKeyDown(this->back)) {
+                    Vector2 direction = playerForwardDirection;
+                    Main::Rotate2D(direction, 180.0f);
+                    playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
+                }
+                if (input->GetKeyDown(this->forward)) {
+                    Vector2 direction = playerForwardDirection;
+                    playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
+                }
+                if (input->GetKeyDown(this->left)) {
+                    Vector2 direction = playerForwardDirection;
+                    Main::Rotate2D(direction, 90.0f);
+                    playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
+                }
+                if (input->GetKeyDown(this->right)) {
+                    Vector2 direction = playerForwardDirection;
+                    Main::Rotate2D(direction, -90.0f);
+                    playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
+                }
+            }
+
+            // Rotate
+            auto torqueMagnitude = 20.0f * playerMass;
+            if (input->GetKeyDown(this->turnLeft)) {
+                playerBody->ApplyTorque(torqueMagnitude, true);
+            }
+            if (input->GetKeyDown(this->turnRight)) {
+                playerBody->ApplyTorque(-torqueMagnitude, true);
             }
         }
     };
@@ -639,6 +715,8 @@ private:
         node = this->scene->CreateChild("Player");
         auto playerComponent = node->CreateComponent<PlayerComponent>();
         playerComponent->Init(this);
+        auto humanActorComponent = node->CreateComponent<HumanActorComponent>();
+        humanActorComponent->Init();
         auto body = node->CreateComponent<RigidBody2D>();
         body->SetBodyType(BT_DYNAMIC);
         body->SetLinearDamping(4.0);
@@ -778,8 +856,8 @@ private:
 
         auto playerPosition = this->playerNode->GetPosition2D();
         auto playerRotation = this->playerNode->GetRotation2D();
-        Vector2 playerForwardDirection = Vector2::UP;
-        this->Rotate2D(playerForwardDirection, playerRotation);
+        auto playerForwardDirection = Vector2::UP;
+        Main::Rotate2D(playerForwardDirection, playerRotation);
 
         // Camera sensor
         std::vector<PhysicsRaycastResult2D> raycastResults;
@@ -788,7 +866,7 @@ private:
         for (auto i = 0u; i < nrays; ++i) {
             auto angle = i * angleStep;
             auto direction = playerForwardDirection;
-            this->Rotate2D(direction, angle);
+            Main::Rotate2D(direction, angle);
             auto position = this->playerNode->GetPosition2D();
             auto startPoint = position + (Main::playerRadius * direction);
             auto endPoint = position + (2.0f * this->GetWindowWidth() * direction);
@@ -823,45 +901,6 @@ private:
                     std::cout << "impulse: " << contactData.impulse << std::endl;
                     std::cout << std::endl;
                 }
-            }
-        }
-
-        // Act
-        {
-            auto playerBody = this->playerNode->GetComponent<RigidBody2D>();
-            auto playerMass = Main::playerDensity * Main::playerRadius;
-
-            // Linear movement
-            {
-                auto forceMagnitude = 500.0f * playerMass;
-                if (this->input->GetKeyDown(KEY_S)) {
-                    Vector2 direction = playerForwardDirection;
-                    this->Rotate2D(direction, 180.0f);
-                    playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
-                }
-                if (this->input->GetKeyDown(KEY_W)) {
-                    Vector2 direction = playerForwardDirection;
-                    playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
-                }
-                if (this->input->GetKeyDown(KEY_A)) {
-                    Vector2 direction = playerForwardDirection;
-                    this->Rotate2D(direction, 90.0f);
-                    playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
-                }
-                if (this->input->GetKeyDown(KEY_D)) {
-                    Vector2 direction = playerForwardDirection;
-                    this->Rotate2D(direction, -90.0f);
-                    playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
-                }
-            }
-
-            // Rotate
-            auto torqueMagnitude = 20.0f * playerMass;
-            if (this->input->GetKeyDown(KEY_Q)) {
-                playerBody->ApplyTorque(torqueMagnitude, true);
-            }
-            if (this->input->GetKeyDown(KEY_E)) {
-                playerBody->ApplyTorque(-torqueMagnitude, true);
             }
         }
 
