@@ -283,29 +283,60 @@ public:
                 {Main::sceneNameToIdx.at("bouncer"), [&](){
                     this->SetTitle("Bouncer");
                     this->CreateWallNodes();
-
-                    auto node = this->scene->CreateChild("bouncer");
-                    auto body = node->CreateComponent<RigidBody2D>();
-                    body->SetBodyType(BT_STATIC);
-                    auto shape = node->CreateComponent<CollisionBox2D>();
-                    shape->SetSize(2.0f * Main::playerRadius * Vector2::ONE);
-                    shape->SetFriction(0.0f);
-                    shape->SetRestitution(Main::playerRestitution);
-                    Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./move.png"));
+                    Node *node;
+                    this->CreateBouncerNode(node);
                     this->MoveToRandomEmptySpace(node);
-
-                    node->SubscribeToEvent(node, E_NODEBEGINCONTACT2D, [](StringHash eventType, VariantMap& eventData) {
-                        using namespace NodeBeginContact2D;
-                        auto otherBody = static_cast<RigidBody2D*>(eventData[P_OTHERBODY].GetPtr());
-                        MemoryBuffer contacts(eventData[P_CONTACTS].GetBuffer());
-                        /*auto position = */contacts.ReadVector2();
-                        auto normal = contacts.ReadVector2();
-                        otherBody->ApplyLinearImpulseToCenter(100.0f * normal, true);
-                    });
-
-                    //this->playerNode->GetComponent<RigidBody2D>()->ApplyForceToCenter(100.0f * Vector2::DOWN, true);
                     this->CreateRandomPlayerNode();
                     this->CreateRandomAppleNode();
+                    this->CreateRandomRockNode();
+                }},
+                {Main::sceneNameToIdx.at("trash"), [&](){
+                    this->SetTitle("Get those stones out of here");
+                    this->CreateWallNodes();
+                    Node *node;
+                    {
+                        this->CreateBouncerNode(node);
+                        node->SetPosition(Vector2(this->wallWidth, this->wallWidth));
+                        node->SetRotation(Quaternion(45.0f));
+                    }
+                    {
+                        this->CreateBouncerNode(node);
+                        node->SetPosition(Vector2(this->GetWindowWidth() - this->wallWidth, this->wallWidth));
+                        node->SetRotation(Quaternion(45.0f));
+                    }
+                    {
+                        this->CreateBouncerNode(node);
+                        node->SetPosition(Vector2(this->GetWindowWidth() - this->wallWidth, this->GetWindowHeight() - this->wallWidth));
+                        node->SetRotation(Quaternion(45.0f));
+                    }
+                    {
+                        this->CreateBouncerNode(node);
+                        node->SetPosition(Vector2(this->wallWidth, this->GetWindowHeight() - this->wallWidth));
+                        node->SetRotation(Quaternion(45.0f));
+                    }
+                    this->CreateRandomPlayerNode();
+                    node = this->scene->CreateChild("TrashCan");
+                    node->SubscribeToEvent(node, E_NODEBEGINCONTACT2D, [&](StringHash eventType, VariantMap& eventData) {
+                        using namespace NodeBeginContact2D;
+                        auto otherNode = static_cast<Node*>(eventData[P_OTHERNODE].GetPtr());
+                        auto variant = otherNode->GetVar("IsTrash");
+                        if (variant != Variant::EMPTY) {
+                            Node *apple;
+                            this->CreateRandomAppleNode(apple, false);
+                            this->SubscribeToEvent(apple, "Consumed", [&](StringHash eventType, VariantMap& eventData){
+                                this->CreateRandomRockNode();
+                            });
+                            otherNode->Remove();
+                        }
+                    });
+                    auto body = node->CreateComponent<RigidBody2D>();
+                    body->SetBodyType(BT_STATIC);
+                    auto shape = node->CreateComponent<CollisionCircle2D>();
+                    shape->SetRadius(Main::playerRadius);
+                    shape->SetFriction(0.0f);
+                    shape->SetRestitution(Main::playerRestitution);
+                    this->MoveToRandomEmptySpace(node);
+                    Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./trash-can.png"));
                     this->CreateRandomRockNode();
                 }},
             }[this->sceneIdx]();
@@ -415,6 +446,7 @@ private:
                     "rock",
                     "spikes",
                     "bouncer",
+                    "trash",
                 };
                 decltype(scenes)::size_type i = 0;
                 for (const auto& scene : scenes) {
@@ -536,6 +568,25 @@ private:
         node->SetRotation(Quaternion(rotation));
     }
 
+    void CreateBouncerNode(Node *&node) {
+        node = this->scene->CreateChild("Bouncer");
+        auto body = node->CreateComponent<RigidBody2D>();
+        body->SetBodyType(BT_STATIC);
+        auto shape = node->CreateComponent<CollisionBox2D>();
+        shape->SetSize(2.0f * Main::playerRadius * Vector2::ONE);
+        shape->SetFriction(0.0f);
+        shape->SetRestitution(Main::playerRestitution);
+        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./move.png"));
+        node->SubscribeToEvent(node, E_NODEBEGINCONTACT2D, [](StringHash eventType, VariantMap& eventData) {
+            using namespace NodeBeginContact2D;
+            auto otherBody = static_cast<RigidBody2D*>(eventData[P_OTHERBODY].GetPtr());
+            MemoryBuffer contacts(eventData[P_CONTACTS].GetBuffer());
+            /*auto position = */contacts.ReadVector2();
+            auto normal = contacts.ReadVector2();
+            otherBody->ApplyLinearImpulseToCenter(100.0f * normal, true);
+        });
+    }
+
     void CreatePlayerNode() {
         auto& node = this->playerNode;
         node = this->scene->CreateChild("Player");
@@ -596,6 +647,7 @@ private:
 
     void CreateRockNode(Node *&node) {
         node = this->scene->CreateChild("Rock");
+        node->SetVar("IsTrash", true);
         auto body = node->CreateComponent<RigidBody2D>();
         body->SetBodyType(BT_DYNAMIC);
         body->SetBullet(true);
