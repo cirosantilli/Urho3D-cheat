@@ -15,6 +15,7 @@ public:
         context->RegisterFactory<ActivateDoorButtonComponent>();
         context->RegisterFactory<AppleButtonsAndComponent>();
         context->RegisterFactory<MaxDistComponent>();
+        context->RegisterFactory<PlayerComponent>();
     }
     virtual void StartExtra() override {
 
@@ -23,7 +24,6 @@ public:
         this->text->SetFont(this->font, 20);
         this->text->SetAlignment(HA_RIGHT, VA_BOTTOM);
         this->text->SetPosition(-10, -10);
-        this->SetScore(0.0f);
         this->windowWidth = 20.0f * Main::playerRadius;
 
         // Scene
@@ -56,6 +56,7 @@ public:
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode();
                     this->CreateRandomGoldenAppleNode();
+                    this->CreateRandomAppleNode();
                 }},
                 {Main::sceneNameToIdx.at("rotten-apple"), [&](){
                     this->SetTitle("Rotten apples are bad");
@@ -339,6 +340,13 @@ public:
                     Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./trash-can.png"));
                     this->CreateRandomRockNode();
                 }},
+                {Main::sceneNameToIdx.at("competition"), [&](){
+                    this->SetTitle("We are not alone");
+                    this->CreateWallNodes();
+                    this->CreateRandomPlayerNode();
+                    this->CreateRandomPlayerNode();
+                    this->CreateRandomAppleNode();
+                }},
             }[this->sceneIdx]();
         }
     }
@@ -423,6 +431,47 @@ private:
         }
     };
 
+    class PlayerComponent : public Component {
+        URHO3D_OBJECT(PlayerComponent, Component);
+    public:
+        PlayerComponent(Context* context) : Component(context) {}
+        void Init(Main *main) {
+            this->score = 0.0f;
+            this->main = main;
+            this->SubscribeToEvent(this->node_, E_NODEBEGINCONTACT2D, URHO3D_HANDLER(PlayerComponent, HandleNodeBeginContact2D));
+        }
+        float GetScore() { return this->score; }
+    private:
+        float score;
+        Main *main;
+        void HandleNodeBeginContact2D(StringHash eventType, VariantMap& eventData) {
+            using namespace NodeBeginContact2D;
+            auto otherNode = static_cast<Node*>(eventData[P_OTHERNODE].GetPtr());
+            {
+                auto variant = otherNode->GetVar("TouchScoreChange");
+                if (variant != Variant::EMPTY) {
+                    this->score += variant.GetFloat();
+                }
+            }
+            {
+                auto variant = otherNode->GetVar("IsConsumable");
+                if (variant != Variant::EMPTY && variant.GetBool()) {
+                    VariantMap eventData;
+                    eventData["SENDER"] = this;
+                    otherNode->SendEvent("Consumed", eventData);
+                    if (otherNode->GetVar(RESPAWN).GetBool()) {
+                        this->main->MoveToRandomEmptySpace(otherNode);
+                        auto body = otherNode->GetComponent<RigidBody2D>();
+                        body->SetLinearVelocity(Vector2::ZERO);
+                        body->SetAngularVelocity(0.0f);
+                    } else {
+                        otherNode->Remove();
+                    }
+                }
+            }
+        }
+    };
+
     struct ContactData {
         Vector2 position;
         float impulse;
@@ -447,6 +496,7 @@ private:
                     "spikes",
                     "bouncer",
                     "trash",
+                    "competition"
                 };
                 decltype(scenes)::size_type i = 0;
                 for (const auto& scene : scenes) {
@@ -481,9 +531,7 @@ private:
     }
 
     Node *playerNode;
-    RigidBody2D *playerBody;
     Text *text;
-    float score;
     float windowWidth;
     size_t sceneIdx;
     std::map<Node*,std::map<Node*,std::vector<ContactData>>> contactDataMap;
@@ -587,11 +635,11 @@ private:
         });
     }
 
-    void CreatePlayerNode() {
-        auto& node = this->playerNode;
+    void CreatePlayerNode(Node *&node) {
         node = this->scene->CreateChild("Player");
-        auto& body = this->playerBody;
-        body = node->CreateComponent<RigidBody2D>();
+        auto playerComponent = node->CreateComponent<PlayerComponent>();
+        playerComponent->Init(this);
+        auto body = node->CreateComponent<RigidBody2D>();
         body->SetBodyType(BT_DYNAMIC);
         body->SetLinearDamping(4.0);
         body->SetAngularDamping(4.0);
@@ -606,8 +654,8 @@ private:
     }
 
     void CreatePlayerNode(const Vector2& position, float rotation = 0.0f) {
-        this->CreatePlayerNode();
-        auto& node = this->playerNode;
+        auto &node = this->playerNode;
+        this->CreatePlayerNode(node);
         node->SetPosition2D(position);
         node->SetRotation(Quaternion(rotation));
     }
@@ -641,8 +689,9 @@ private:
     }
 
     void CreateRandomPlayerNode() {
-        this->CreatePlayerNode();
-        this->MoveToRandomEmptySpace(this->playerNode);
+        auto &node = this->playerNode;
+        this->CreatePlayerNode(node);
+        this->MoveToRandomEmptySpace(node);
     }
 
     void CreateRockNode(Node *&node) {
@@ -698,46 +747,6 @@ private:
         } else if (key == KEY_P) {
             this->sceneIdx = (this->sceneIdx == 0 ? this->sceneNameToIdx.size() : this->sceneIdx) - 1;
             this->Reset();
-        }
-    }
-
-    virtual void HandlePhysicsBeginContact2DExtra(StringHash eventType, VariantMap& eventData) override {
-        using namespace PhysicsBeginContact2D;
-        auto nodea = static_cast<Node*>(eventData[P_NODEA].GetPtr());
-        auto nodeb = static_cast<Node*>(eventData[P_NODEB].GetPtr());
-        Node *otherNode;
-        bool player = false;
-        if (nodea == this->playerNode) {
-            otherNode = nodeb;
-            player = true;
-        }
-        if (nodeb == this->playerNode) {
-            otherNode = nodea;
-            player = true;
-        }
-        if (player) {
-            {
-                auto variant = otherNode->GetVar("TouchScoreChange");
-                if (variant != Variant::EMPTY) {
-                    this->SetScore(this->score + variant.GetFloat());
-                }
-            }
-            {
-                auto variant = otherNode->GetVar("IsConsumable");
-                if (variant != Variant::EMPTY && variant.GetBool()) {
-                    VariantMap eventData;
-                    eventData["SENDER"] = this;
-                    otherNode->SendEvent("Consumed", eventData);
-                    if (otherNode->GetVar(RESPAWN).GetBool()) {
-                        this->MoveToRandomEmptySpace(otherNode);
-                        auto body = otherNode->GetComponent<RigidBody2D>();
-                        body->SetLinearVelocity(Vector2::ZERO);
-                        body->SetAngularVelocity(0.0f);
-                    } else {
-                        otherNode->Remove();
-                    }
-                }
-            }
         }
     }
 
@@ -817,23 +826,6 @@ private:
             }
         }
 
-#if 0
-        // This should be avoided, components should be favored.
-        // Scene logic
-        {
-            static const std::unordered_map<size_t,std::function<void(Main*)>> m{
-                {Main::sceneNameToIdx["door-patrol"], [&](Main* thiz){
-                    auto door = thiz->scene->GetChild("Door");
-                }}
-            };
-            static const auto end = m.end();
-            auto it = m.find(this->sceneIdx);
-            if (it != end) {
-                it->second(this);
-            }
-        }
-#endif
-
         // Act
         {
             auto playerBody = this->playerNode->GetComponent<RigidBody2D>();
@@ -844,7 +836,7 @@ private:
                 auto forceMagnitude = 500.0f * playerMass;
                 if (this->input->GetKeyDown(KEY_S)) {
                     Vector2 direction = playerForwardDirection;
-                    this->Rotate2D(direction, 180.0);
+                    this->Rotate2D(direction, 180.0f);
                     playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
                 }
                 if (this->input->GetKeyDown(KEY_W)) {
@@ -853,12 +845,12 @@ private:
                 }
                 if (this->input->GetKeyDown(KEY_A)) {
                     Vector2 direction = playerForwardDirection;
-                    this->Rotate2D(direction, 90.0);
+                    this->Rotate2D(direction, 90.0f);
                     playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
                 }
                 if (this->input->GetKeyDown(KEY_D)) {
                     Vector2 direction = playerForwardDirection;
-                    this->Rotate2D(direction, -90.0);
+                    this->Rotate2D(direction, -90.0f);
                     playerBody->ApplyForceToCenter(direction * forceMagnitude, true);
                 }
             }
@@ -873,10 +865,12 @@ private:
             }
         }
 
-#if 0
-        this->SetScore(this->score - 0.001f);
-#endif
         contactDataMap.clear();
+
+        // Update score
+        std::stringstream ss;
+        ss << "Score: " << std::fixed << std::setprecision(0) << this->playerNode->GetComponent<PlayerComponent>()->GetScore();
+        this->text->SetText(ss.str().c_str());
     }
 
     void InitButtonNode(Node *node) {
@@ -902,13 +896,6 @@ private:
             ));
             node->SetRotation(Quaternion(Random() * 360.0f));
         } while (this->AabbCount(node->GetDerivedComponent<CollisionShape2D>()) > 1);
-    }
-
-    void SetScore(float score) {
-        this->score = score;
-        std::stringstream ss;
-        ss << "Score: " << std::fixed << std::setprecision(0) << score;
-        this->text->SetText(ss.str().c_str());
     }
 
     void SetTitle(String title) {
