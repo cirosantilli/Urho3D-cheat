@@ -517,7 +517,7 @@ private:
         body->SetAngularDamping(4.0);
         auto shape = node->CreateComponent<CollisionCircle2D>();
         shape->SetRadius(Main::playerRadius);
-        // TODO: make player not loose speed when hitting the apple.
+        // TODO: make player not lose speed when hitting the apple.
         // The player is still pushed back when eating. Why.
         //shape->SetDensity(0.0f);
         // Works, until we reach cases where some things can apply forces to apples,
