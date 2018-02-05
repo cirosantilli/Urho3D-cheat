@@ -47,12 +47,14 @@ public:
                     );
                 }},
                 {Main::sceneNameToIdx.at("apple"), [&](){
+                    // Introduce the player to apples.
                     this->SetTitle("Apples are good");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode();
                     this->CreateRandomAppleNode();
                 }},
                 {Main::sceneNameToIdx.at("golden-apple"), [&](){
+                    // Introduce the player to golden apples.
                     this->SetTitle("Golden apples are better");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode();
@@ -60,6 +62,7 @@ public:
                     this->CreateRandomAppleNode();
                 }},
                 {Main::sceneNameToIdx.at("rotten-apple"), [&](){
+                    // Introduce the player to rotten apples.
                     this->SetTitle("Rotten apples are bad");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode();
@@ -67,6 +70,8 @@ public:
                     this->CreateRandomRottenAppleNode();
                 }},
                 {Main::sceneNameToIdx.at("hole-top-bottom"), [&](){
+                    // Minimal maze. The player must memorize the wall locations to be efficient.
+                    // Requires a concept of curiosity on the bot, since apple is not seen initially.
                     this->SetTitle("I don't see no apple");
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f), -90.0f);
@@ -82,6 +87,7 @@ public:
                     }
                 }},
                 {Main::sceneNameToIdx.at("hole-top"), [&](){
+                    // Another maze, but with a single door.
                     this->SetTitle("Topology");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode();
@@ -97,6 +103,8 @@ public:
                     }
                 }},
                 {Main::sceneNameToIdx.at("small-hole"), [&](){
+                    // The player can an apple through a hole,
+                    // but the hole is too small to get through.
                     this->SetTitle("I can't get through here");
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f), -90.0f);
@@ -120,6 +128,8 @@ public:
                     }
                 }},
                 {Main::sceneNameToIdx.at("patrol-door"), [&](){
+                    // A door opens and closes by itself periodically.
+                    // The player must wait for opening to go to other half of the room.
                     this->SetTitle("Patience");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode();
@@ -159,6 +169,7 @@ public:
                     }
                 }},
                 {Main::sceneNameToIdx.at("apple-button"), [&](){
+                    // An apple appears then the button is pressed.
                     this->SetTitle("What does this button do?");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode();
@@ -171,6 +182,7 @@ public:
                     appleButtonsAndComponent->AddChildButton(button);
                 }},
                 {Main::sceneNameToIdx.at("apple-buttons-and"), [&](){
+                    // Both buttons must be pressed, one after the other, for an apple to appear.
                     this->SetTitle("AND now there are two");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode();
@@ -192,6 +204,10 @@ public:
                     }
                 }},
                 {Main::sceneNameToIdx.at("button-door"), [&](){
+                    // The door opens when the button is pressed.
+                    // If there are no apples on this side of the wall,
+                    // the player must open the door to explore the other side.
+                    // TODO: the a button could block the door and make passage impossible.
                     this->SetTitle("Are buttons and doors related?");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode();
@@ -255,6 +271,8 @@ public:
                     this->CreateRandomAppleNode();
                 }},
                 {Main::sceneNameToIdx.at("rock"), [&](){
+                    // Introduce the player to rocks.
+                    //
                     // TODO: if you use the rock to push the apple into a corner, the rock and apple can overlap.
                     // And worse, for some reason this can lead to multiple apples spawning afterwards.
                     // This does not happen however on the Box2D sandbox, so it should be solvable somehow:
@@ -267,6 +285,7 @@ public:
                     this->CreateRandomRockNode();
                 }},
                 {Main::sceneNameToIdx.at("spikes"), [&](){
+                    // Introduce the player to spikes.
                     this->SetTitle("And spikes are just plain bad.");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode();
@@ -283,6 +302,7 @@ public:
                     Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./spikes-full.png"));
                 }},
                 {Main::sceneNameToIdx.at("bouncer"), [&](){
+                    // Introduce the player to a bouncer.
                     this->SetTitle("Bouncer");
                     this->CreateWallNodes();
                     Node *node;
@@ -293,6 +313,7 @@ public:
                     this->CreateRandomRockNode();
                 }},
                 {Main::sceneNameToIdx.at("trash"), [&](){
+                    // The player must put the stones in the trashcan to get an apple.
                     this->SetTitle("Get those stones out of here");
                     this->CreateWallNodes();
                     Node *node;
@@ -342,6 +363,7 @@ public:
                     this->CreateRandomRockNode();
                 }},
                 {Main::sceneNameToIdx.at("competition"), [&](){
+                    // Two players fight for one apple.
                     this->SetTitle("We are not alone");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode();
@@ -356,6 +378,31 @@ public:
                         "U: turn left\n"
                         "O: turn right\n"
                     );
+                }},
+                {Main::sceneNameToIdx.at("collaboration"), [&](){
+                    // Both player must touch button at same time for apple to appear.
+                    // TODO: if buttons are too close, a single player an get the apples.
+                    this->SetTitle("Collabotition");
+                    this->CreateWallNodes();
+                    this->CreateRandomPlayerNode();
+                    this->playerNode->GetComponent<HumanActorComponent>()->Init2();
+                    this->CreateRandomPlayerNode();
+                    auto buttonsNode = this->scene->CreateChild("Buttons");
+                    auto appleButtonsAndComponent = buttonsNode->CreateComponent<AppleButtonsAndComponent>();
+                    appleButtonsAndComponent->Init(this, true);
+                    {
+                        auto button = this->scene->CreateChild("Button0");
+                        this->InitButtonNode(button);
+                        this->MoveToRandomEmptySpace(button);
+                        appleButtonsAndComponent->AddChildButton(button);
+                    }
+                    {
+                        auto button = this->scene->CreateChild("Button1");
+                        this->InitButtonNode(button);
+                        this->MoveToRandomEmptySpace(button);
+                        appleButtonsAndComponent->AddChildButton(button);
+                        this->MoveToRandomEmptySpace(button);
+                    }
                 }},
             }[this->sceneIdx]();
         }
@@ -400,22 +447,25 @@ private:
     class AppleButtonsAndComponent : public Component {
         URHO3D_OBJECT(AppleButtonsAndComponent, Component);
     public:
-        AppleButtonsAndComponent(Context* context) : Component(context) {
+        AppleButtonsAndComponent(Context* context) : Component(context) {}
+        void Init(Main *main, bool simultaneous = false) {
             this->nButtonsHit = 0;
             this->active = true;
-        }
-        void Init(Main *main) {
             this->main = main;
+            this->simultaneous = simultaneous;
         }
         void AddChildButton(Node *node) {
             this->buttonsHit[node] = false;
-            this->SubscribeToEvent(node, E_NODEBEGINCONTACT2D, URHO3D_HANDLER(AppleButtonsAndComponent, HandleChildCollision));
+            this->SubscribeToEvent(node, E_NODEBEGINCONTACT2D, URHO3D_HANDLER(AppleButtonsAndComponent, HandleChildBeginContact));
+            if (simultaneous) {
+                this->SubscribeToEvent(node, E_NODEENDCONTACT2D, URHO3D_HANDLER(AppleButtonsAndComponent, HandleChildEndContact));
+            }
         }
     private:
         Main *main;
         std::map<Node*,bool> buttonsHit;
         decltype(buttonsHit)::size_type nButtonsHit;
-        bool active;
+        bool active, simultaneous;
         void HandleAppleEaten(StringHash eventType, VariantMap& eventData) {
             auto appleNode = (static_cast<Node*>(this->GetEventSender()));
             this->UnsubscribeFromEvent(appleNode, "Consumed");
@@ -425,7 +475,7 @@ private:
                 entry.second = false;
             }
         }
-        void HandleChildCollision(StringHash eventType, VariantMap& eventData) {
+        void HandleChildBeginContact(StringHash eventType, VariantMap& eventData) {
             auto buttonNode = (static_cast<Node*>(this->GetEventSender()));
             auto &hit = this->buttonsHit.at(buttonNode);
             if (!hit) {
@@ -437,6 +487,14 @@ private:
                 this->main->CreateRandomAppleNode(apple, false);
                 this->SubscribeToEvent(apple, "Consumed", URHO3D_HANDLER(AppleButtonsAndComponent, HandleAppleEaten));
                 this->active = false;
+            }
+        }
+        void HandleChildEndContact(StringHash eventType, VariantMap& eventData) {
+            auto buttonNode = (static_cast<Node*>(this->GetEventSender()));
+            auto &hit = this->buttonsHit.at(buttonNode);
+            if (hit) {
+                this->nButtonsHit--;
+                hit = false;
             }
         }
     };
@@ -572,7 +630,8 @@ private:
                     "spikes",
                     "bouncer",
                     "trash",
-                    "competition"
+                    "competition",
+                    "collaboration",
                 };
                 decltype(scenes)::size_type i = 0;
                 for (const auto& scene : scenes) {
