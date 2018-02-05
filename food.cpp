@@ -316,50 +316,31 @@ public:
                     // The player must put the stones in the trashcan to get an apple.
                     this->SetTitle("Get those stones out of here");
                     this->CreateWallNodes();
-                    Node *node;
-                    {
-                        this->CreateBouncerNode(node);
-                        node->SetPosition(Vector2(this->wallWidth, this->wallWidth));
-                        node->SetRotation(Quaternion(45.0f));
-                    }
-                    {
-                        this->CreateBouncerNode(node);
-                        node->SetPosition(Vector2(this->GetWindowWidth() - this->wallWidth, this->wallWidth));
-                        node->SetRotation(Quaternion(45.0f));
-                    }
-                    {
-                        this->CreateBouncerNode(node);
-                        node->SetPosition(Vector2(this->GetWindowWidth() - this->wallWidth, this->GetWindowHeight() - this->wallWidth));
-                        node->SetRotation(Quaternion(45.0f));
-                    }
-                    {
-                        this->CreateBouncerNode(node);
-                        node->SetPosition(Vector2(this->wallWidth, this->GetWindowHeight() - this->wallWidth));
-                        node->SetRotation(Quaternion(45.0f));
-                    }
+                    this->CreateCornerBouncers();
                     this->CreateRandomPlayerNode();
-                    node = this->scene->CreateChild("TrashCan");
-                    node->SubscribeToEvent(node, E_NODEBEGINCONTACT2D, [&](StringHash eventType, VariantMap& eventData) {
-                        using namespace NodeBeginContact2D;
-                        auto otherNode = static_cast<Node*>(eventData[P_OTHERNODE].GetPtr());
-                        auto variant = otherNode->GetVar("IsTrash");
-                        if (variant != Variant::EMPTY) {
-                            Node *apple;
-                            this->CreateRandomAppleNode(apple, false);
-                            this->SubscribeToEvent(apple, "Consumed", [&](StringHash eventType, VariantMap& eventData){
-                                this->CreateRandomRockNode();
-                            });
-                            otherNode->Remove();
-                        }
-                    });
-                    auto body = node->CreateComponent<RigidBody2D>();
-                    body->SetBodyType(BT_STATIC);
-                    auto shape = node->CreateComponent<CollisionCircle2D>();
-                    shape->SetRadius(Main::playerRadius);
-                    shape->SetFriction(0.0f);
-                    shape->SetRestitution(Main::playerRestitution);
-                    this->MoveToRandomEmptySpace(node);
-                    Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./trash-can.png"));
+                    {
+                        auto node = this->scene->CreateChild("TrashCan");
+                        node->SubscribeToEvent(node, E_NODEBEGINCONTACT2D, [&](StringHash eventType, VariantMap& eventData) {
+                            using namespace NodeBeginContact2D;
+                            auto otherNode = static_cast<Node*>(eventData[P_OTHERNODE].GetPtr());
+                            if (otherNode->GetVar("IsTrash") != Variant::EMPTY) {
+                                otherNode->Remove();
+                                Node *apple;
+                                this->CreateRandomAppleNode(apple, false);
+                                this->SubscribeToEvent(apple, "Consumed", [&](StringHash eventType, VariantMap& eventData){
+                                    this->CreateRandomRockNode();
+                                });
+                            }
+                        });
+                        auto body = node->CreateComponent<RigidBody2D>();
+                        body->SetBodyType(BT_STATIC);
+                        auto shape = node->CreateComponent<CollisionCircle2D>();
+                        shape->SetRadius(Main::playerRadius);
+                        shape->SetFriction(0.0f);
+                        shape->SetRestitution(Main::playerRestitution);
+                        this->MoveToRandomEmptySpace(node);
+                        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./trash-can.png"));
+                    }
                     this->CreateRandomRockNode();
                 }},
                 {Main::sceneNameToIdx.at("competition"), [&](){
@@ -403,6 +384,42 @@ public:
                         appleButtonsAndComponent->AddChildButton(button);
                         this->MoveToRandomEmptySpace(button);
                     }
+                }},
+                {Main::sceneNameToIdx.at("basketball"), [&](){
+                    // When a player scores, it gains 1 point, and the other player loses 1 point.
+                    this->SetTitle("Basketrock");
+                    this->CreateWallNodes();
+                    this->CreateCornerBouncers();
+                    Node *player1, *player2;
+                    this->CreatePlayerNode(player2);
+                    player2->GetComponent<HumanActorComponent>()->Init2();
+                    this->CreatePlayerNode(player1);
+                    this->playerNode = player1;
+                    auto createBasket = [this](Node *player1, Node *player2, const Vector2& position){
+                        auto node = this->scene->CreateChild("Basket");
+                        node->SubscribeToEvent(node, E_NODEBEGINCONTACT2D, [this,player1,player2](StringHash eventType, VariantMap& eventData) {
+                            using namespace NodeBeginContact2D;
+                            auto otherNode = static_cast<Node*>(eventData[P_OTHERNODE].GetPtr());
+                            if (otherNode->GetVar("IsTrash") != Variant::EMPTY) {
+                                this->MoveToRandomEmptySpace(otherNode);
+                                player1->GetComponent<PlayerComponent>()->IncrementScore(-1.0f);
+                                player2->GetComponent<PlayerComponent>()->IncrementScore(1.0f);
+                            }
+                        });
+                        node->SetPosition(position);
+                        auto body = node->CreateComponent<RigidBody2D>();
+                        body->SetBodyType(BT_STATIC);
+                        auto shape = node->CreateComponent<CollisionCircle2D>();
+                        shape->SetRadius(Main::playerRadius);
+                        shape->SetFriction(0.0f);
+                        shape->SetRestitution(Main::playerRestitution);
+                        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./trash-can.png"));
+                    };
+                    createBasket(player1, player2, Vector2(Main::wallWidth + Main::playerRadius, this->GetWindowHeight() / 2.0f));
+                    createBasket(player2, player1, Vector2(this->GetWindowWidth() - (Main::wallWidth + Main::playerRadius), this->GetWindowHeight() / 2.0f));
+                    this->MoveToRandomEmptySpace(player1);
+                    this->MoveToRandomEmptySpace(player2);
+                    this->CreateRandomRockNode();
                 }},
             }[this->sceneIdx]();
         }
@@ -575,16 +592,17 @@ private:
             this->SubscribeToEvent(this->node_, E_NODEBEGINCONTACT2D, URHO3D_HANDLER(PlayerComponent, HandleNodeBeginContact2D));
         }
         float GetScore() { return this->score; }
+        void IncrementScore(float inc) { this->score += inc; }
     private:
-        float score;
         Main *main;
+        float score;
         void HandleNodeBeginContact2D(StringHash eventType, VariantMap& eventData) {
             using namespace NodeBeginContact2D;
             auto otherNode = static_cast<Node*>(eventData[P_OTHERNODE].GetPtr());
             {
                 auto variant = otherNode->GetVar("TouchScoreChange");
                 if (variant != Variant::EMPTY) {
-                    this->score += variant.GetFloat();
+                    this->IncrementScore(variant.GetFloat());
                 }
             }
             {
@@ -632,6 +650,7 @@ private:
                     "trash",
                     "competition",
                     "collaboration",
+                    "basketball",
                 };
                 decltype(scenes)::size_type i = 0;
                 for (const auto& scene : scenes) {
@@ -719,18 +738,6 @@ private:
         Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./shiny-apple-red.png"));
     }
 
-    void CreateGoldenAppleNode(Node *&node, bool respawn = true) {
-        this->CreateAppleNodeBase(node, respawn);
-        node->SetVar("TouchScoreChange", 5.0f);
-        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./shiny-apple-yellow.png"));
-    }
-
-    void CreateRottenAppleNode(Node *&node, bool respawn = true) {
-        this->CreateAppleNodeBase(node, respawn);
-        node->SetVar("TouchScoreChange", -1.0f);
-        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./shiny-apple-brown.png"));
-    }
-
     void CreateAppleNode(
         const Vector2& position,
         float rotation = 0.0f,
@@ -768,6 +775,36 @@ private:
             auto normal = contacts.ReadVector2();
             otherBody->ApplyLinearImpulseToCenter(100.0f * normal, true);
         });
+    }
+
+    void CreateCornerBouncers() {
+        Node *node;
+        {
+            this->CreateBouncerNode(node);
+            node->SetPosition(Vector2(this->wallWidth, this->wallWidth));
+            node->SetRotation(Quaternion(45.0f));
+        }
+        {
+            this->CreateBouncerNode(node);
+            node->SetPosition(Vector2(this->GetWindowWidth() - this->wallWidth, this->wallWidth));
+            node->SetRotation(Quaternion(45.0f));
+        }
+        {
+            this->CreateBouncerNode(node);
+            node->SetPosition(Vector2(this->GetWindowWidth() - this->wallWidth, this->GetWindowHeight() - this->wallWidth));
+            node->SetRotation(Quaternion(45.0f));
+        }
+        {
+            this->CreateBouncerNode(node);
+            node->SetPosition(Vector2(this->wallWidth, this->GetWindowHeight() - this->wallWidth));
+            node->SetRotation(Quaternion(45.0f));
+        }
+    }
+
+    void CreateGoldenAppleNode(Node *&node, bool respawn = true) {
+        this->CreateAppleNodeBase(node, respawn);
+        node->SetVar("TouchScoreChange", 5.0f);
+        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./shiny-apple-yellow.png"));
     }
 
     void CreatePlayerNode(Node *&node) {
@@ -845,6 +882,12 @@ private:
         shape->SetRadius(Main::playerRadius);
         shape->SetRestitution(Main::playerRestitution);
         Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./rock.png"));
+    }
+
+    void CreateRottenAppleNode(Node *&node, bool respawn = true) {
+        this->CreateAppleNodeBase(node, respawn);
+        node->SetVar("TouchScoreChange", -1.0f);
+        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./shiny-apple-brown.png"));
     }
 
     void CreateWallNodes() {
