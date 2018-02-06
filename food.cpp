@@ -406,15 +406,14 @@ public:
                     {
                         auto button = this->scene->CreateChild("Button0");
                         this->InitButtonNode(button);
-                        this->MoveToRandomEmptySpace(button);
+                        this->MoveToRandomEmptySpace(button, false);
                         appleButtonsAndComponent->AddChildButton(button);
                     }
                     {
                         auto button = this->scene->CreateChild("Button1");
                         this->InitButtonNode(button);
-                        this->MoveToRandomEmptySpace(button);
+                        this->MoveToRandomEmptySpace(button, false);
                         appleButtonsAndComponent->AddChildButton(button);
-                        this->MoveToRandomEmptySpace(button);
                     }
                 }},
                 {Main::sceneNameToIdx.at("basketball"), [&](){
