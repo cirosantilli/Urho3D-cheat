@@ -38,11 +38,11 @@ public:
                     text->SetFont(this->font, 20);
                     text->SetAlignment(HA_CENTER, VA_CENTER);
                     text->SetText(
-                        "W: forward\n"
+                        "ASDW: the usual\n"
                         "Q: turn left\n"
                         "E: turn right\n"
-                        "N: next scene\n"
-                        "P: previous scene\n"
+                        "N: Next scene\n"
+                        "P: Previous scene\n"
                         "ESC: quit\n"
                     );
                 }},
@@ -105,7 +105,7 @@ public:
                 {Main::sceneNameToIdx.at("small-hole"), [&](){
                     // The player can an apple through a hole,
                     // but the hole is too small to get through.
-                    this->SetTitle("I can't get through here");
+                    this->SetTitle("I need a diet");
                     this->CreateWallNodes();
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f), -90.0f);
                     this->CreateAppleNode(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
@@ -347,9 +347,9 @@ public:
                     // Two players fight for one apple.
                     this->SetTitle("We are not alone");
                     this->CreateWallNodes();
-                    this->CreateRandomPlayerNode();
+                    this->CreateRandomPlayerNode(false);
                     this->playerNode->GetComponent<HumanActorComponent>()->Init2();
-                    this->CreateRandomPlayerNode();
+                    this->CreateRandomPlayerNode(false);
                     this->CreateRandomAppleNode();
                     auto text = this->ui->GetRoot()->CreateChild<Text>();
                     text->SetFont(this->font, 20);
@@ -365,9 +365,9 @@ public:
                     // TODO: if buttons are too close, a single player an get the apples.
                     this->SetTitle("Collabotition");
                     this->CreateWallNodes();
-                    this->CreateRandomPlayerNode();
+                    this->CreateRandomPlayerNode(false);
                     this->playerNode->GetComponent<HumanActorComponent>()->Init2();
-                    this->CreateRandomPlayerNode();
+                    this->CreateRandomPlayerNode(false);
                     auto buttonsNode = this->scene->CreateChild("Buttons");
                     auto appleButtonsAndComponent = buttonsNode->CreateComponent<AppleButtonsAndComponent>();
                     appleButtonsAndComponent->Init(this, true);
@@ -391,9 +391,9 @@ public:
                     this->CreateWallNodes();
                     this->CreateCornerBouncers();
                     Node *player1, *player2;
-                    this->CreatePlayerNode(player2);
+                    this->CreatePlayerNode(player2, false);
                     player2->GetComponent<HumanActorComponent>()->Init2();
-                    this->CreatePlayerNode(player1);
+                    this->CreatePlayerNode(player1, false);
                     this->playerNode = player1;
                     auto createBasket = [this](Node *player1, Node *player2, const Vector2& position){
                         auto node = this->scene->CreateChild("Basket");
@@ -417,8 +417,8 @@ public:
                     };
                     createBasket(player1, player2, Vector2(Main::wallWidth + Main::playerRadius, this->GetWindowHeight() / 2.0f));
                     createBasket(player2, player1, Vector2(this->GetWindowWidth() - (Main::wallWidth + Main::playerRadius), this->GetWindowHeight() / 2.0f));
-                    this->MoveToRandomEmptySpace(player1);
-                    this->MoveToRandomEmptySpace(player2);
+                    this->MoveToRandomEmptySpace(player1, false);
+                    this->MoveToRandomEmptySpace(player2, false);
                     this->CreateRandomRockNode();
                 }},
             }[this->sceneIdx]();
@@ -815,7 +815,7 @@ private:
         Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./shiny-apple-yellow.png"));
     }
 
-    void CreatePlayerNode(Node *&node) {
+    void CreatePlayerNode(Node *&node, bool attachCamera = true) {
         node = this->scene->CreateChild("Player");
         auto playerComponent = node->CreateComponent<PlayerComponent>();
         playerComponent->Init(this);
@@ -831,7 +831,9 @@ private:
         shape->SetFriction(0.0f);
         shape->SetRadius(Main::playerRadius);
         shape->SetRestitution(Main::playerRestitution);
-        this->CreateCamera(node, 20.0f * playerRadius);
+        if (attachCamera) {
+            this->CreateCamera(node, 20.0f * playerRadius);
+        }
         Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./baby-face.png"));
     }
 
@@ -870,10 +872,10 @@ private:
         this->MoveToRandomEmptySpace(node);
     }
 
-    void CreateRandomPlayerNode() {
+    void CreateRandomPlayerNode(bool singlePlayer = true) {
         auto &node = this->playerNode;
-        this->CreatePlayerNode(node);
-        this->MoveToRandomEmptySpace(node);
+        this->CreatePlayerNode(node, singlePlayer);
+        this->MoveToRandomEmptySpace(node, singlePlayer);
     }
 
     void CreateRockNode(Node *&node) {
@@ -1032,18 +1034,20 @@ private:
         Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./button-finger.png"));
     }
 
-    void MoveToRandomEmptySpace(Node *node) {
+    void MoveToRandomEmptySpace(Node *node, bool randomRotation = true) {
         Rect bounds(0.0f, this->GetWindowHeight(), this->GetWindowWidth(), 0.0f);
-        this->MoveToRandomEmptySpace(node, bounds);
+        this->MoveToRandomEmptySpace(node, bounds, randomRotation);
     }
 
-    void MoveToRandomEmptySpace(Node *node, const Rect& bounds) {
+    void MoveToRandomEmptySpace(Node *node, const Rect& bounds, bool randomRotation = true) {
         do {
             node->SetPosition(Vector2(
                 bounds.Left()   + (Random() * (bounds.Right() - bounds.Left())),
                 bounds.Bottom() + (Random() * (bounds.Top()   - bounds.Bottom()))
             ));
-            node->SetRotation(Quaternion(Random() * 360.0f));
+            if (randomRotation) {
+                node->SetRotation(Quaternion(Random() * 360.0f));
+            }
         } while (this->AabbCount(node->GetDerivedComponent<CollisionShape2D>()) > 1);
     }
 
