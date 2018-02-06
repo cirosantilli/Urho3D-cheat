@@ -12,6 +12,7 @@ class Main : public Common {
 public:
     Main(Context* context) : Common(context) {
         this->sceneIdx = 0;
+        this->windowWidth = 20.0f * Main::playerRadius;
         context->RegisterFactory<ActivateDoorButtonComponent>();
         context->RegisterFactory<AppleButtonsAndComponent>();
         context->RegisterFactory<HumanActorComponent>();
@@ -25,7 +26,6 @@ public:
         this->text->SetFont(this->font, 20);
         this->text->SetAlignment(HA_RIGHT, VA_BOTTOM);
         this->text->SetPosition(-10, -10);
-        this->windowWidth = 20.0f * Main::playerRadius;
 
         // Scene
         {
@@ -361,9 +361,41 @@ public:
                     );
                 }},
                 {Main::sceneNameToIdx.at("collaboration"), [&](){
+                    // If either player gets the apple, both get a point.
+                    this->SetTitle("Collaboration");
+                    this->CreateWallNodes();
+                    Node *player1, *player2;
+                    {
+                        this->CreatePlayerNode(player2, false);
+                        player2->GetComponent<HumanActorComponent>()->Init2();
+                        this->CreatePlayerNode(player1, false);
+                        this->playerNode = player1;
+                        this->MoveToRandomEmptySpace(player1, false);
+                        this->MoveToRandomEmptySpace(player2, false);
+                    }
+                    {
+                        Node *apple;
+                        this->CreateAppleNodeBase(apple);
+                        Main::SetSprite(apple, this->resourceCache->GetResource<Sprite2D>("./shiny-apple-red.png"));
+                        this->MoveToRandomEmptySpace(apple);
+                        apple->SubscribeToEvent(apple, E_NODEBEGINCONTACT2D, [player1,player2](StringHash eventType, VariantMap& eventData) {
+                            using namespace NodeBeginContact2D;
+                            auto otherNode = static_cast<Node*>(eventData[P_OTHERNODE].GetPtr());
+                            if (otherNode->GetComponent<PlayerComponent>()) {
+                                player1->GetComponent<PlayerComponent>()->IncrementScore(1.0f);
+                                player2->GetComponent<PlayerComponent>()->IncrementScore(1.0f);
+                            }
+                        });
+                    }
+                }},
+                {Main::sceneNameToIdx.at("collabotition"), [&](){
                     // Both player must touch button at same time for apple to appear.
+                    //
+                    // When buttonsa re asymmetric, this creates a prisonner's dillema,
+                    // since the player touching the middle button can almost always get the apple.
+                    //
                     // TODO: if buttons are too close, a single player an get the apples.
-                    this->SetTitle("Collabotition");
+                    this->SetTitle("Collaboration");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode(false);
                     this->playerNode->GetComponent<HumanActorComponent>()->Init2();
@@ -658,6 +690,7 @@ private:
                     "trash",
                     "competition",
                     "collaboration",
+                    "collabotition",
                     "basketball",
                 };
                 decltype(scenes)::size_type i = 0;
