@@ -493,6 +493,14 @@ private:
             }
         }
         void HandleChildBeginContact(StringHash eventType, VariantMap& eventData) {
+            if (this->simultaneous) {
+                // Stop the player to make it easier for both to sync.
+                // Ideally, this should be done with the restitution coefficient, but Box2D uses max(r1,r2)...
+                // http://box2d.org/forum/viewtopic.php?t=659
+                using namespace NodeBeginContact2D;
+                auto otherNode = static_cast<Node*>(eventData[P_OTHERNODE].GetPtr());
+                otherNode->GetComponent<RigidBody2D>()->SetLinearVelocity(Vector2::ZERO);
+            }
             auto buttonNode = (static_cast<Node*>(this->GetEventSender()));
             auto &hit = this->buttonsHit.at(buttonNode);
             if (!hit) {
