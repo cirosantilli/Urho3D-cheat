@@ -18,6 +18,7 @@ public:
         context->RegisterFactory<HumanActorComponent>();
         context->RegisterFactory<MaxDistComponent>();
         context->RegisterFactory<PlayerComponent>();
+        context->RegisterFactory<RottenAppleSpawnerComponent>();
     }
     virtual void StartExtra() override {
 
@@ -68,6 +69,20 @@ public:
                     this->CreateRandomPlayerNode();
                     this->CreateRandomAppleNode();
                     this->CreateRandomRottenAppleNode();
+                }},
+                {Main::sceneNameToIdx.at("no-pain"), [&](){
+                    // The player must get through a transparent wall of rotten apples to reach a golden apple.
+                    this->SetTitle("No pain");
+                    this->CreateWallNodes();
+                    Node *node;
+                    for (float y = this->wallWidth + 1.5f * Main::playerRadius; y < this->GetWindowHeight(); y += 3.0f * Main::playerRadius) {
+                        node = this->scene->CreateChild("RottenAppleSpawner");
+                        node->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, y));
+                        auto component = node->CreateComponent<RottenAppleSpawnerComponent>();
+                        component->Init(this);
+                    }
+                    this->CreateRandomPlayerNode();
+                    this->CreateRandomGoldenAppleNode();
                 }},
                 {Main::sceneNameToIdx.at("hole-top-bottom"), [&](){
                     // Minimal maze. The player must memorize the wall locations to be efficient.
@@ -426,7 +441,7 @@ public:
                     player2->GetComponent<HumanActorComponent>()->Init2();
                     this->CreatePlayerNode(player1, false);
                     this->playerNode = player1;
-                    auto createBasket = [this](Node *player1, Node *player2, const Vector2& position){
+                    auto createBasket = [this](Node *player1, Node *player2, const Vector2& position) {
                         auto node = this->scene->CreateChild("Basket");
                         node->SubscribeToEvent(node, E_NODEBEGINCONTACT2D, [this,player1,player2](StringHash eventType, VariantMap& eventData) {
                             using namespace NodeBeginContact2D;
@@ -666,6 +681,26 @@ private:
         }
     };
 
+    class RottenAppleSpawnerComponent : public Component {
+        URHO3D_OBJECT(RottenAppleSpawnerComponent, Component);
+    public:
+        RottenAppleSpawnerComponent(Context* context) : Component(context) {}
+        void Init(Main *main) {
+            this->main = main;
+            this->SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(RottenAppleSpawnerComponent, HandleUpdate));
+        }
+    private:
+        Main *main;
+        void HandleUpdate(StringHash eventType, VariantMap& eventData) {
+            auto node = this->GetScene()->CreateChild("RottenApple");
+            this->main->CreateRottenAppleNode(node, false);
+            node->SetPosition2D(this->node_->GetPosition2D());
+            if (this->main->AabbCount(node->GetDerivedComponent<CollisionShape2D>()) > 1) {
+                node->Remove();
+            }
+        }
+    };
+
     struct ContactData {
         Vector2 position;
         float impulse;
@@ -679,6 +714,7 @@ private:
                     "apple",
                     "golden-apple",
                     "rotten-apple",
+                    "no-pain",
                     "hole-top-bottom",
                     "hole-top",
                     "small-hole",
@@ -1055,6 +1091,12 @@ private:
 
         // Update score
         std::stringstream ss;
+        if (false) {
+            auto pos = this->playerNode->GetPosition2D();
+            ss << "x,y: " << std::fixed << std::setprecision(1) << pos.x_ << ", " << pos.y_ << std::endl;
+            auto vel = this->playerNode->GetComponent<RigidBody2D>()->GetLinearVelocity();
+            ss << "vx,vy: " << std::fixed << std::setprecision(1) << vel.x_ << ", " << vel.y_ << std::endl;
+        }
         ss << "Score: " << std::fixed << std::setprecision(0) << this->playerNode->GetComponent<PlayerComponent>()->GetScore();
         this->text->SetText(ss.str().c_str());
     }
