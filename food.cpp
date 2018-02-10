@@ -693,6 +693,8 @@ private:
         Main *main;
         void HandleUpdate(StringHash eventType, VariantMap& eventData) {
             auto node = this->GetScene()->CreateChild("RottenApple");
+            // TODO for efficiency, cache the shape on constructor so we don't have to create the apples every time.
+            // And then possibly monitor only node start contact and node end contact instead of doing this on update.
             this->main->CreateRottenAppleNode(node, false);
             node->SetPosition2D(this->node_->GetPosition2D());
             if (this->main->AabbCount(node->GetDerivedComponent<CollisionShape2D>()) > 1) {
