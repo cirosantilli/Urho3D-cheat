@@ -395,7 +395,7 @@ public:
                     // since the player touching the middle button can almost always get the apple.
                     //
                     // TODO: if buttons are too close, a single player an get the apples.
-                    this->SetTitle("Collaboration");
+                    this->SetTitle("collabotition");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode(false);
                     this->playerNode->GetComponent<HumanActorComponent>()->Init2();
@@ -520,6 +520,7 @@ private:
             this->nButtonsHit = 0;
             this->active = true;
             for (auto &entry : this->buttonsHit) {
+                Main::SetSprite(entry.first, this->main->resourceCache->GetResource<Sprite2D>("./button-finger.png"));
                 entry.second = false;
             }
         }
@@ -537,6 +538,7 @@ private:
             if (!hit) {
                 this->nButtonsHit++;
                 hit = true;
+                Main::SetSprite(buttonNode, this->main->resourceCache->GetResource<Sprite2D>("./thumb-up.png"));
             }
             if (this->active && this->nButtonsHit == this->buttonsHit.size()) {
                 Node *apple;
@@ -551,6 +553,7 @@ private:
             if (hit) {
                 this->nButtonsHit--;
                 hit = false;
+                Main::SetSprite(buttonNode, this->main->resourceCache->GetResource<Sprite2D>("./button-finger.png"));
             }
         }
     };
@@ -719,7 +722,7 @@ private:
         auto upperBound = Vector2(b2Aabb.upperBound.x, b2Aabb.upperBound.y);
         PODVector<RigidBody2D*> rigidBodies;
         auto aabb = Rect(lowerBound, upperBound);
-        auto staticSprite = node->CreateComponent<StaticSprite2D>();
+        auto staticSprite = node->GetOrCreateComponent<StaticSprite2D>();
         staticSprite->SetSprite(sprite);
         staticSprite->SetDrawRect(aabb - Rect(position, position));
     }
