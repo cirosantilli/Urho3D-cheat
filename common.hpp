@@ -25,6 +25,7 @@
 #include <Urho3D/Graphics/Renderer.h>
 #include <Urho3D/IO/File.h>
 #include <Urho3D/IO/FileSystem.h>
+#include <Urho3D/IO/Log.h>
 #include <Urho3D/IO/MemoryBuffer.h>
 #include <Urho3D/Input/Input.h>
 #include <Urho3D/Input/InputEvents.h>
@@ -124,6 +125,7 @@ protected:
     static constexpr unsigned int voxelResolution = 100;
 
     bool debugEvents;
+    bool drawDebugGeometry;
     Camera *camera;
     Font *font;
     Input *input;
@@ -178,7 +180,7 @@ protected:
         using namespace KeyDown;
         auto key = eventData[P_KEY].GetInt();
         if (key == KEY_ESCAPE) {
-            engine_->Exit();
+            this->engine_->Exit();
         } else if (key == KEY_F5) {
             this->Reset();
         } else if (key == KEY_F6) {
@@ -212,7 +214,9 @@ protected:
     }
 
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData) {
-        this->physicsWorld->DrawDebugGeometry();
+        if (this->drawDebugGeometry) {
+            this->physicsWorld->DrawDebugGeometry();
+        }
     }
 
     void HandleMouseButtonUp(StringHash eventType, VariantMap& eventData) {

@@ -13,6 +13,7 @@ public:
     Main(Context* context) : Common(context) {
         this->sceneIdx = 0;
         this->windowWidth = 20.0f * Main::playerRadius;
+        this->drawDebugGeometry = false;
         context->RegisterFactory<ActivateDoorButtonComponent>();
         context->RegisterFactory<AppleButtonsAndComponent>();
         context->RegisterFactory<HumanActorComponent>();
@@ -92,13 +93,11 @@ public:
                     this->CreatePlayerNode(Vector2(this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f), -90.0f);
                     this->CreateAppleNode(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->GetWindowHeight() / 2.0f));
                     {
-                        auto node = this->scene->CreateChild("SeparatorWall");
+                        Node *node;
+                        this->CreateWallNode(node, this->GetWindowWidth() / 2.0f);
+                        node->SetName("SeparatorWall");
                         node->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0, this->GetWindowHeight() / 2.0f));
                         node->SetRotation(Quaternion(90.0f));
-                        node->CreateComponent<RigidBody2D>();
-                        auto shape = node->CreateComponent<CollisionBox2D>();
-                        shape->SetSize(Vector2(this->GetWindowWidth() / 2.0f, this->wallWidth));
-                        shape->SetRestitution(0.0);
                     }
                 }},
                 {Main::sceneNameToIdx.at("hole-top"), [&](){
@@ -109,12 +108,13 @@ public:
                     this->CreateRandomAppleNode();
                     {
                         auto node = this->scene->CreateChild("SeparatorWall");
-                        node->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0, 3.0f * this->GetWindowHeight() / 8.0f));
-                        node->SetRotation(Quaternion(90.0f));
                         node->CreateComponent<RigidBody2D>();
                         auto shape = node->CreateComponent<CollisionBox2D>();
                         shape->SetSize(Vector2(3.0f * this->GetWindowWidth() / 4.0f, this->wallWidth));
                         shape->SetRestitution(0.0);
+                        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./gray.png"));
+                        node->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0, 3.0f * this->GetWindowHeight() / 8.0f));
+                        node->SetRotation(Quaternion(90.0f));
                     }
                 }},
                 {Main::sceneNameToIdx.at("small-hole"), [&](){
@@ -127,15 +127,16 @@ public:
                     auto bottomSeparatorWallNode = this->scene->CreateChild("SeparatorWallBottom");
                     {
                         auto& node = bottomSeparatorWallNode;
+                        node->SetRotation(Quaternion(90.0f));
                         node->SetPosition2D(Vector2(
                             this->GetWindowWidth() / 2.0,
                             3.0f * this->GetWindowHeight() / 8.0f - Main::playerRadius / 2.0f
                         ));
-                        node->SetRotation(Quaternion(90.0f));
-                        node->CreateComponent<RigidBody2D>();
                         auto shape = node->CreateComponent<CollisionBox2D>();
                         shape->SetSize(Vector2(this->GetWindowWidth() / 4.0f, this->wallWidth));
                         shape->SetRestitution(0.0);
+                        node->CreateComponent<RigidBody2D>();
+                        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./gray.png"));
                     } {
                         auto node = bottomSeparatorWallNode->Clone();
                         node->SetName("SeparatorWallTop");
@@ -162,6 +163,7 @@ public:
                         auto shape = node->CreateComponent<CollisionBox2D>();
                         shape->SetSize(Vector2(bottomSeparatorLength, this->wallWidth));
                         shape->SetRestitution(0.0);
+                        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./gray.png"));
                     } {
                         auto node = bottomSeparatorWallNode->Clone();
                         node->SetName("SeparatorWallTop");
@@ -176,11 +178,14 @@ public:
                             bottomSeparatorWallNode->GetPosition2D().x_,
                             this->GetWindowHeight() / 2.0f
                         ));
+                        auto shape = node->GetComponent<CollisionBox2D>();
+                        shape->SetSize(Vector2(bottomSeparatorLength, this->wallWidth * 0.9f));
                         auto maxDistComponent = node->CreateComponent<MaxDistComponent>();
                         maxDistComponent->SetSpeed(Vector2::RIGHT * this->GetWindowWidth() / 4.0f);
                         maxDistComponent->SetMaxDist((this->GetWindowWidth() - bottomSeparatorLength) / 2.0f);
                         auto body = node->GetComponent<RigidBody2D>();
                         body->SetBodyType(BT_KINEMATIC);
+                        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./brown.png"), -1);
                     }
                 }},
                 {Main::sceneNameToIdx.at("apple-button"), [&](){
@@ -226,20 +231,18 @@ public:
                     this->SetTitle("Are buttons and doors related?");
                     this->CreateWallNodes();
                     this->CreateRandomPlayerNode();
-                    auto bottomSeparatorWallNode = this->scene->CreateChild("SeparatorWallBottom");
+                    Node *bottomSeparatorWallNode;
                     auto bottomSeparatorLength = (this->GetWindowHeight() - 3.0f * Main::playerRadius) / 2.0f;
                     MaxDistComponent *maxDistComponent;
                     {
                         auto& node = bottomSeparatorWallNode;
+                        this->CreateWallNode(node, bottomSeparatorLength);
+                        node->SetName("SeparatorWallBottom");
                         node->SetPosition2D(Vector2(
                             this->GetWindowWidth() / 2.0f,
                             bottomSeparatorLength / 2.0f
                         ));
                         node->SetRotation(Quaternion(90.0f));
-                        node->CreateComponent<RigidBody2D>();
-                        auto shape = node->CreateComponent<CollisionBox2D>();
-                        shape->SetSize(Vector2(bottomSeparatorLength, this->wallWidth));
-                        shape->SetRestitution(0.0);
                     } {
                         auto node = bottomSeparatorWallNode->Clone();
                         node->SetName("SeparatorWallTop");
@@ -254,6 +257,7 @@ public:
                             bottomSeparatorWallNode->GetPosition2D().x_,
                             this->GetWindowHeight() / 2.0f
                         ));
+                        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./brown.png"), -1);
                         maxDistComponent = node->CreateComponent<MaxDistComponent>();
                         maxDistComponent->SetSpeed(Vector2::RIGHT * this->GetWindowWidth() / 4.0f);
                         maxDistComponent->SetMaxDist((this->GetWindowWidth() - bottomSeparatorLength) / 2.0f);
@@ -314,7 +318,7 @@ public:
                     shape->SetFriction(0.0f);
                     shape->SetRestitution(Main::playerRestitution);
                     this->MoveToRandomEmptySpace(node);
-                    Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./spikes-full.png"));
+                    Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./spikes.png"));
                 }},
                 {Main::sceneNameToIdx.at("bouncer"), [&](){
                     // Introduce the player to a bouncer.
@@ -473,18 +477,31 @@ public:
     virtual void StartOnce() override {
         String sceneName;
         auto args = GetArguments();
+        size_t sceneIdx;
+        bool sceneIdxGiven = false;
         decltype(args.Size()) i = 0;
         while (i < args.Size()) {
             auto& arg = args[i];
             if (arg == "-zscene") {
                 ++i;
                 sceneName = args[i].CString();
+            } else if (arg == "-zscene-idx") {
+                sceneIdxGiven = true;
+                ++i;
+                sceneIdx = std::stoull(args[i].CString());
             }
             ++i;
         }
-        auto it = this->sceneNameToIdx.find(sceneName);
-        if (it != this->sceneNameToIdx.end()) {
-            this->sceneIdx = it->second;
+        if (sceneIdxGiven) {
+            this->sceneIdx = sceneIdx;
+        } else {
+            auto it = this->sceneNameToIdx.find(sceneName);
+            if (it != this->sceneNameToIdx.end()) {
+                this->sceneIdx = it->second;
+            } else {
+                URHO3D_LOGERROR("Scene name not found.");
+                this->engine_->Exit();
+            }
         }
     }
 private:
@@ -753,8 +770,10 @@ private:
         vec = Vector2(vec3.x_, vec3.y_);
     }
 
-    static void SetSprite(Node *node, Sprite2D *sprite) {
+    static void SetSprite(Node *node, Sprite2D *sprite, int layer = 0) {
         auto position = node->GetPosition2D();
+        auto rotation = node->GetRotation();
+        node->SetRotation(Quaternion(0.0f));
         auto b2Aabb = node->GetDerivedComponent<CollisionShape2D>()->GetFixture()->GetAABB(0);
         auto lowerBound = Vector2(b2Aabb.lowerBound.x, b2Aabb.lowerBound.y);
         auto upperBound = Vector2(b2Aabb.upperBound.x, b2Aabb.upperBound.y);
@@ -763,6 +782,8 @@ private:
         auto staticSprite = node->GetOrCreateComponent<StaticSprite2D>();
         staticSprite->SetSprite(sprite);
         staticSprite->SetDrawRect(aabb - Rect(position, position));
+        staticSprite->SetLayer(layer);
+        node->SetRotation(rotation);
     }
 
     Node *playerNode;
@@ -973,16 +994,21 @@ private:
         Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./shiny-apple-brown.png"));
     }
 
+    void CreateWallNode(Node *&node, float length) {
+        node = this->scene->CreateChild("Wall");
+        node->CreateComponent<RigidBody2D>();
+        auto shape = node->CreateComponent<CollisionBox2D>();
+        shape->SetSize(Vector2(length, this->wallWidth));
+        shape->SetRestitution(0.0);
+        Main::SetSprite(node, this->resourceCache->GetResource<Sprite2D>("./gray.png"));
+    }
+
     void CreateWallNodes() {
         Node *bottomWallNode;
+        this->CreateWallNode(bottomWallNode, this->GetWindowWidth());
+        bottomWallNode->SetName("BottomWall");
+        bottomWallNode->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0, this->wallWidth / 2.0f));
         {
-            bottomWallNode = this->scene->CreateChild("BottomWall");
-            bottomWallNode->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0, this->wallWidth / 2.0f));
-            bottomWallNode->CreateComponent<RigidBody2D>();
-            auto shape = bottomWallNode->CreateComponent<CollisionBox2D>();
-            shape->SetSize(Vector2(this->GetWindowWidth(), this->wallWidth));
-            shape->SetRestitution(0.0);
-        } {
             auto node = bottomWallNode->Clone();
             node->SetName("TopWall");
             node->SetPosition2D(Vector2(this->GetWindowWidth() / 2.0f, this->GetWindowHeight() - (this->wallWidth / 2.0f)));
@@ -1118,6 +1144,7 @@ private:
         this->MoveToRandomEmptySpace(node, bounds, randomRotation);
     }
 
+    // TODO: this uses the orthogonal AABB box. So a long diagonal object blocks the entire scene.
     void MoveToRandomEmptySpace(Node *node, const Rect& bounds, bool randomRotation = true) {
         do {
             node->SetPosition(Vector2(
