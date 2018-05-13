@@ -1,5 +1,13 @@
 /*
 One agent eats apples and gets happy.
+
+Start at given scene name:
+
+    ./bin/food -zscene tutorial
+
+Start at given scene index:
+
+    ./bin/food -zscene-idx 0
 */
 
 #include "common.hpp"
@@ -479,10 +487,12 @@ public:
         auto args = GetArguments();
         size_t sceneIdx;
         bool sceneIdxGiven = false;
+        bool sceneNameGiven = false;
         decltype(args.Size()) i = 0;
         while (i < args.Size()) {
             auto& arg = args[i];
             if (arg == "-zscene") {
+                sceneNameGiven = true;
                 ++i;
                 sceneName = args[i].CString();
             } else if (arg == "-zscene-idx") {
@@ -494,7 +504,7 @@ public:
         }
         if (sceneIdxGiven) {
             this->sceneIdx = sceneIdx;
-        } else {
+        } else if (sceneNameGiven)  {
             auto it = this->sceneNameToIdx.find(sceneName);
             if (it != this->sceneNameToIdx.end()) {
                 this->sceneIdx = it->second;
@@ -502,6 +512,8 @@ public:
                 URHO3D_LOGERROR("Scene name not found.");
                 this->engine_->Exit();
             }
+        } else {
+            this->sceneIdx = 0;
         }
     }
 private:
