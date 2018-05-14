@@ -6,6 +6,10 @@ Build and run a demo:
 
     ./run
 
+Video demo: https://www.youtube.com/watch?v=j_fl4xoGTKU
+
+![](screenshot.png)
+
 1.  [**Getting started**](getting-started.md)
 1.  Minimal examples
     1.  [empty.cpp](empty.cpp)
