@@ -1,6 +1,6 @@
 # Urho3D Cheat
 
-Urho3D extra examples and demos. Tested in Ubuntu 17.10.
+Urho3D extra examples and demos. Tested in Ubuntu 18.04.
 
 Build and run a demo:
 
