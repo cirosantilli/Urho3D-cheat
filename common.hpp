@@ -68,8 +68,8 @@ public:
     virtual void Setup() override {
         this->engineParameters_[EP_FULL_SCREEN] = false;
         this->engineParameters_[EP_WINDOW_TITLE] = __FILE__;
-        this->engineParameters_[EP_WINDOW_HEIGHT] = 512;
-        this->engineParameters_[EP_WINDOW_WIDTH] = 512;
+        this->engineParameters_[EP_WINDOW_HEIGHT] = 1024;
+        this->engineParameters_[EP_WINDOW_WIDTH] = 1024;
     }
     virtual void Start() override {
         if (!this->scene) {
