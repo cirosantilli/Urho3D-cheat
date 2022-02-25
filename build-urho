@@ -5,4 +5,9 @@ mkdir -p cmake-build-make
 cd cmake-build-make
 cmake -DCMAKE_BUILD_TYPE=Debug -DURHO3D_LIB_TYPE=SHARED ..
 make -j`nproc`
-sudo make install
+if [ -e /.dockerenv ]; then
+  sudo=
+else
+  sudo=sudo
+fi
+$sudo make install
